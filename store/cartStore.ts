@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ShopifyCheckoutSheet } from '@shopify/checkout-sheet-kit';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { addToCart, createCart, getCart } from '../api/shopify';
+import { addToCart, cartBuyerIdentityUpdate, createCart, getCart } from '../api/shopify';
 
 interface CartState {
     cartId: string | null;
@@ -13,6 +14,7 @@ interface CartState {
     initializeCart: () => Promise<void>;
     addItem: (variantId: string, quantity?: number) => Promise<void>;
     resetCart: () => void;
+    associateCustomer: (accessToken: string) => Promise<void>;
 }
 
 export const useCartStore = create<CartState>()(
@@ -36,6 +38,10 @@ export const useCartStore = create<CartState>()(
                                 checkoutUrl: cart.checkoutUrl,
                                 loading: false,
                             });
+                            if (cart.checkoutUrl) {
+                                // @ts-ignore
+                                ShopifyCheckoutSheet.preload(cart.checkoutUrl);
+                            }
                         } else {
                             set({ cartId: null, lines: [], checkoutUrl: null, loading: false }); // Cart expired
                         }
@@ -65,9 +71,32 @@ export const useCartStore = create<CartState>()(
                         checkoutUrl: cart.checkoutUrl,
                         loading: false,
                     });
+
+                    if (cart.checkoutUrl) {
+                        // @ts-ignore
+                        ShopifyCheckoutSheet.preload(cart.checkoutUrl);
+                    }
                 } catch (error) {
                     console.error('Failed to add to cart:', error);
                     set({ error: 'Failed to add item', loading: false });
+                }
+            },
+
+            associateCustomer: async (accessToken: string) => {
+                const { cartId } = get();
+                if (cartId && accessToken) {
+                    try {
+                        const cart = await cartBuyerIdentityUpdate(cartId, accessToken);
+                        if (cart) {
+                            set({ checkoutUrl: cart.checkoutUrl });
+                            if (cart.checkoutUrl) {
+                                // @ts-ignore
+                                ShopifyCheckoutSheet.preload(cart.checkoutUrl);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Failed to associate customer to cart:', error);
+                    }
                 }
             },
 

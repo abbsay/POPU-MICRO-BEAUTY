@@ -1,19 +1,33 @@
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useEffect } from 'react';
-import { ActivityIndicator, FlatList, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Colors } from '../constants/theme';
-import { useCartStore } from '../store/cartStore';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../constants/theme';
+import { useCartStore } from '../../store/cartStore';
+
+import { useShopifyCheckoutSheet } from '@shopify/checkout-sheet-kit';
+import * as Haptics from 'expo-haptics';
+import { useAuthStore } from '../../store/authStore';
 
 export default function CartScreen() {
     const { lines, checkoutUrl, loading, initializeCart, cartId } = useCartStore();
+    const shopifyCheckout = useShopifyCheckoutSheet();
 
     useEffect(() => {
         initializeCart();
     }, []);
 
+    const customerAccessToken = useAuthStore(state => state.customerAccessToken);
+
     const handleCheckout = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        if (!customerAccessToken) {
+            router.push('/auth/login');
+            return;
+        }
         if (checkoutUrl) {
-            Linking.openURL(checkoutUrl);
+            // Ensure latest customer token is associated before checkout
+            useCartStore.getState().associateCustomer(customerAccessToken);
+            shopifyCheckout.present(checkoutUrl);
         }
     };
 

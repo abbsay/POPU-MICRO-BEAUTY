@@ -79,11 +79,20 @@ export async function getProductById(id: string) {
             currencyCode
           }
         }
-        variants(first: 10) {
+        options {
+          id
+          name
+          values
+        }
+        variants(first: 20) {
           edges {
             node {
               id
               title
+              selectedOptions {
+                 name
+                 value
+              }
               price {
                 amount
                 currencyCode
@@ -195,6 +204,28 @@ export async function addToCart(cartId: string, lines: any[]) {
   return response.cartLinesAdd.cart;
 }
 
+export async function cartBuyerIdentityUpdate(cartId: string, customerAccessToken: string) {
+  const query = `
+    mutation cartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+      cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+        cart {
+          id
+          checkoutUrl
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, {
+    cartId,
+    buyerIdentity: { customerAccessToken }
+  });
+  return response.cartBuyerIdentityUpdate.cart;
+}
+
 export async function getCart(cartId: string) {
   const query = `
     query getCart($cartId: ID!) {
@@ -240,4 +271,187 @@ export async function getCart(cartId: string) {
   `;
   const response = await shopifyFetch(query, { cartId });
   return response.cart;
+}
+
+export async function getCollections(first = 10) {
+  const query = `
+    query getCollections($first: Int!) {
+      collections(first: $first) {
+        edges {
+          node {
+            id
+            title
+            image {
+              url
+            }
+          }
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { first });
+  return response.collections.edges.map((edge: any) => edge.node);
+}
+
+export async function searchProducts(searchTerm: string) {
+  const query = `
+    query searchProducts($query: String!) {
+      products(first: 10, query: $query) {
+        edges {
+          node {
+            id
+            title
+            priceRange {
+              minVariantPrice {
+                amount
+                currencyCode
+              }
+            }
+            images(first: 1) {
+              edges {
+                node {
+                  url
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { query: searchTerm });
+  return response.products.edges.map((edge: any) => edge.node);
+}
+
+export async function getCollectionProducts(collectionId: string) {
+  const query = `
+    query getCollectionProducts($id: ID!) {
+      collection(id: $id) {
+        id
+        title
+        products(first: 20) {
+          edges {
+            node {
+              id
+              title
+              priceRange {
+                minVariantPrice {
+                  amount
+                  currencyCode
+                }
+              }
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { id: collectionId });
+  return response.collection;
+}
+
+export async function customerAccessTokenCreate(email: string, password: string) {
+  const query = `
+    mutation customerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {
+      customerAccessTokenCreate(input: $input) {
+        customerAccessToken {
+          accessToken
+          expiresAt
+        }
+        customerUserErrors {
+          code
+          field
+          message
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { input: { email, password } });
+  return response.customerAccessTokenCreate;
+}
+
+export async function customerCreate(email: string, password: string) {
+  const query = `
+    mutation customerCreate($input: CustomerCreateInput!) {
+      customerCreate(input: $input) {
+        customer {
+          id
+          email
+        }
+        customerUserErrors {
+          code
+          field
+          message
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { input: { email, password } });
+  return response.customerCreate;
+}
+
+export async function customerRecover(email: string) {
+  const query = `
+    mutation customerRecover($email: String!) {
+      customerRecover(email: $email) {
+        customerUserErrors {
+          code
+          field
+          message
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { email });
+  return response.customerRecover;
+}
+
+
+
+export async function getCustomer(accessToken: string) {
+  const query = `
+    query getCustomer($accessToken: String!) {
+      customer(customerAccessToken: $accessToken) {
+        id
+        firstName
+        lastName
+        email
+        phone
+        defaultAddress {
+          id
+          formatted
+        }
+        addresses(first: 5) {
+          edges {
+            node {
+              id
+              formatted
+            }
+          }
+        }
+        orders(first: 10) {
+           edges {
+             node {
+               id
+               orderNumber
+               financialStatus
+               totalPrice {
+                 amount
+                 currencyCode
+               }
+             }
+           }
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { accessToken });
+  return response.customer;
 }
