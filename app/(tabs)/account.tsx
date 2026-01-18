@@ -15,8 +15,6 @@ export default function AccountScreen() {
         }
     }, [customerAccessToken]);
 
-
-
     const handleLogout = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         logout();
@@ -25,10 +23,13 @@ export default function AccountScreen() {
     if (!customer) {
         // Guest State
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
                 <Stack.Screen options={{ headerShown: false }} />
-                <View style={[styles.header, { paddingVertical: 80 }]}>
-                    <Text style={styles.welcomeText}>POPU MICRO</Text>
+                <View style={styles.guestHeader}>
+                    <Image
+                        source={require('../../assets/images/popu_logo.png')}
+                        style={styles.logo}
+                    />
                     <Text style={styles.subText}>Sign in for a better experience</Text>
 
                     <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/auth/login')}>
@@ -39,16 +40,6 @@ export default function AccountScreen() {
                         <Text style={styles.secondaryBtnText}>CREATE ACCOUNT</Text>
                     </TouchableOpacity>
                 </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>SUPPORT</Text>
-                    <TouchableOpacity style={styles.menuItem}>
-                        <IconSymbol name="gear" size={20} color="#000" />
-                        <Text style={styles.menuText}>Settings</Text>
-                        <IconSymbol name="chevron.right" size={16} color="#ccc" />
-                    </TouchableOpacity>
-                </View>
-                <Text style={styles.version}>Version 1.0.0</Text>
             </SafeAreaView>
         );
     }
@@ -57,51 +48,65 @@ export default function AccountScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
-            <ScrollView>
-                <View style={styles.header}>
-                    <View style={styles.avatarContainer}>
-                        <Image
-                            source={{ uri: `https://ui-avatars.com/api/?name=${customer.firstName || 'User'}+${customer.lastName || ''}&background=000&color=fff&size=200` }}
-                            style={styles.avatar}
-                        />
-                    </View>
-                    <Text style={styles.welcomeText}>{customer.firstName} {customer.lastName}</Text>
-                    <Text style={styles.subText}>{customer.email}</Text>
+            <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+                {/* Header / Profile Section */}
+                <View style={styles.loggedInHeader}>
+                    <Image
+                        source={require('../../assets/images/popu_logo.png')}
+                        style={styles.headerLogo}
+                    />
+
+                    <TouchableOpacity onPress={() => router.push('/account/profile')} style={styles.profileCard}>
+                        <View style={styles.avatarContainer}>
+                            <Image
+                                source={{ uri: `https://ui-avatars.com/api/?name=${customer.firstName || 'User'}+${customer.lastName || ''}&background=000&color=fff&size=200` }}
+                                style={styles.avatar}
+                            />
+                            <View style={styles.editBadge}>
+                                <IconSymbol name="pencil" size={12} color="#fff" />
+                            </View>
+                        </View>
+                        <View style={styles.profileInfo}>
+                            <Text style={styles.welcomeText}>{customer.firstName} {customer.lastName}</Text>
+                            <Text style={styles.emailText}>{customer.email}</Text>
+                        </View>
+                        <IconSymbol name="chevron.right" size={20} color="#ccc" style={{ marginLeft: 'auto' }} />
+                    </TouchableOpacity>
                 </View>
 
+                {/* My Account Menu */}
                 <View style={styles.section}>
                     <Text style={styles.sectionHeader}>MY ACCOUNT</Text>
-                    <TouchableOpacity style={styles.menuItem}>
-                        <IconSymbol name="bag" size={20} color="#000" />
-                        <Text style={styles.menuText}>My Orders</Text>
-                        <IconSymbol name="chevron.right" size={16} color="#ccc" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.menuItem}>
-                        <IconSymbol name="location" size={20} color="#000" />
-                        <Text style={styles.menuText}>Addresses</Text>
-                        <IconSymbol name="chevron.right" size={16} color="#ccc" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.menuItem}>
-                        <IconSymbol name="heart" size={20} color="#000" />
-                        <Text style={styles.menuText}>Wishlist</Text>
-                        <IconSymbol name="chevron.right" size={16} color="#ccc" />
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>SUPPORT</Text>
-                    <TouchableOpacity style={styles.menuItem}>
-                        <IconSymbol name="gear" size={20} color="#000" />
-                        <Text style={styles.menuText}>Settings</Text>
-                        <IconSymbol name="chevron.right" size={16} color="#ccc" />
-                    </TouchableOpacity>
+                    <View style={styles.menuCard}>
+                        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/account/orders')}>
+                            <View style={styles.iconBox}>
+                                <IconSymbol name="bag" size={20} color="#000" />
+                            </View>
+                            <Text style={styles.menuText}>My Orders</Text>
+                            <IconSymbol name="chevron.right" size={16} color="#ccc" />
+                        </TouchableOpacity>
+                        <View style={styles.separator} />
+                        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/account/addresses')}>
+                            <View style={styles.iconBox}>
+                                <IconSymbol name="location" size={20} color="#000" />
+                            </View>
+                            <Text style={styles.menuText}>Addresses</Text>
+                            <IconSymbol name="chevron.right" size={16} color="#ccc" />
+                        </TouchableOpacity>
+                        <View style={styles.separator} />
+                        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/account/wishlist')}>
+                            <View style={styles.iconBox}>
+                                <IconSymbol name="heart" size={20} color="#000" />
+                            </View>
+                            <Text style={styles.menuText}>Wishlist</Text>
+                            <IconSymbol name="chevron.right" size={16} color="#ccc" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Text style={styles.logoutText}>LOG OUT</Text>
+                    <Text style={styles.logoutText}>Log Out</Text>
                 </TouchableOpacity>
-
-                <Text style={styles.version}>Version 1.0.0</Text>
             </ScrollView>
         </SafeAreaView>
     );
@@ -110,108 +115,181 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: '#F9F9F9', // Light gray background for better card contrast
     },
-    header: {
+    // Guest Styles
+    guestHeader: {
         alignItems: 'center',
-        paddingVertical: 40,
-        borderBottomWidth: 10,
-        borderBottomColor: '#f9f9f9',
+        paddingHorizontal: 20,
     },
-    avatarContainer: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 5,
+    logo: {
+        width: 180,
+        height: 60,
+        resizeMode: 'contain',
+        marginBottom: 10,
+    },
+    headerLogo: {
+        width: 120,
+        height: 40,
+        resizeMode: 'contain',
         marginBottom: 20,
-    },
-    avatar: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-    },
-    welcomeText: {
-        fontSize: 24,
-        fontWeight: '900',
-        letterSpacing: 1,
-        marginBottom: 5,
+        alignSelf: 'center',
     },
     subText: {
         color: '#666',
         fontSize: 14,
-        marginBottom: 20,
+        marginBottom: 40,
+        textAlign: 'center',
     },
     primaryBtn: {
         backgroundColor: '#000',
-        paddingHorizontal: 40,
-        paddingVertical: 15,
+        paddingHorizontal: 20,
+        paddingVertical: 18,
+        borderRadius: 12, // Square rounded
         marginBottom: 15,
-        width: '80%',
+        width: '100%',
         alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     primaryBtnText: {
         color: '#fff',
         fontWeight: 'bold',
-        letterSpacing: 1,
+        fontSize: 16,
+        letterSpacing: 0.5,
     },
     secondaryBtn: {
-        paddingHorizontal: 40,
-        paddingVertical: 15,
+        paddingHorizontal: 20,
+        paddingVertical: 18,
+        borderRadius: 12, // Square rounded
         borderWidth: 1,
         borderColor: '#000',
-        width: '80%',
+        width: '100%',
         alignItems: 'center',
+        backgroundColor: '#fff',
     },
     secondaryBtnText: {
         color: '#000',
         fontWeight: 'bold',
-        letterSpacing: 1,
+        fontSize: 16,
+        letterSpacing: 0.5,
     },
-    section: {
-        marginTop: 20,
+
+    // Logged In Styles
+    loggedInHeader: {
+        paddingVertical: 20,
         paddingHorizontal: 20,
-        marginBottom: 10,
+    },
+    profileCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        padding: 20,
+        borderRadius: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    avatarContainer: {
+        marginRight: 15,
+    },
+    avatar: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+    },
+    editBadge: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: '#000',
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#fff',
+    },
+    profileInfo: {
+        flex: 1,
+    },
+    welcomeText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#000',
+        marginBottom: 4,
+    },
+    emailText: {
+        color: '#666',
+        fontSize: 14,
+    },
+
+    // Menu
+    section: {
+        marginTop: 10,
+        paddingHorizontal: 20,
     },
     sectionHeader: {
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 'bold',
-        color: '#999',
+        color: '#666',
         marginBottom: 10,
-        letterSpacing: 1,
+        marginLeft: 4,
+        letterSpacing: 0.5,
+    },
+    menuCard: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        paddingHorizontal: 10,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
     },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
+        paddingHorizontal: 10,
+    },
+    iconBox: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: '#F5F5F5',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     menuText: {
         flex: 1,
         fontSize: 16,
-        marginLeft: 15,
         fontWeight: '500',
+        marginLeft: 15,
+        color: '#333',
     },
+    separator: {
+        height: 1,
+        backgroundColor: '#F0F0F0',
+        marginLeft: 61, // Align with text
+    },
+
+    // Logout
     logoutButton: {
-        margin: 30,
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#ddd',
-        padding: 18,
-        borderRadius: 0,
+        marginHorizontal: 20,
+        marginTop: 30,
+        padding: 16,
         alignItems: 'center',
     },
     logoutText: {
-        color: '#000',
-        fontSize: 14,
-        fontWeight: 'bold',
-        letterSpacing: 1.5,
+        color: '#FF3B30', // System red
+        fontSize: 16,
+        fontWeight: '600',
     },
-    version: {
-        textAlign: 'center',
-        color: '#ccc',
-        fontSize: 12,
-        marginBottom: 30,
-    }
 });

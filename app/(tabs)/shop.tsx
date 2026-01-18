@@ -1,10 +1,12 @@
 import { Link, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getCollections } from '../../api/shopify';
 
 const { width } = Dimensions.get('window');
+const COLUMN_WIDTH = (width - 40) / 2;
 
 export default function ShopScreen() {
     const [collections, setCollections] = useState<any[]>([]);
@@ -24,36 +26,51 @@ export default function ShopScreen() {
         loadCollections();
     }, []);
 
+    const renderItem = ({ item, index }: { item: any; index: number }) => (
+        <Link href={`/collection/${encodeURIComponent(item.id)}`} asChild>
+            <TouchableOpacity activeOpacity={0.9}>
+                <Animated.View
+                    entering={FadeInDown.delay(index * 100).springify().damping(12)}
+                    layout={Layout.springify()}
+                    style={styles.card}
+                >
+                    {item.image ? (
+                        <Image source={{ uri: item.image.url }} style={styles.image} />
+                    ) : (
+                        <View style={[styles.image, { backgroundColor: '#eee' }]} />
+                    )}
+                    <View style={styles.overlay}>
+                        <View style={styles.textContainer}>
+                            <Text style={styles.collectionTitle}>{item.title}</Text>
+                            <Text style={styles.exploreText}>EXPLORE</Text>
+                        </View>
+                    </View>
+                </Animated.View>
+            </TouchableOpacity>
+        </Link>
+    );
+
     return (
         <SafeAreaView style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
-            <View style={styles.header}>
-                <Text style={styles.title}>SHOP ALL</Text>
-            </View>
+            <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.header}>
+                <Text style={styles.title}>COLLECTIONS</Text>
+                <Text style={styles.subtitle}>Curated just for you</Text>
+            </Animated.View>
 
             {loading ? (
                 <View style={styles.loadingContainer}>
-                    <Text>Loading Categories...</Text>
+                    <Text style={styles.loadingText}>Loading curated collections...</Text>
                 </View>
             ) : (
-                <FlatList
+                <Animated.FlatList
                     data={collections}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item: any) => item.id}
                     numColumns={2}
                     columnWrapperStyle={styles.columnWrapper}
                     contentContainerStyle={styles.listContent}
-                    renderItem={({ item }) => (
-                        <Link href={`/collection/${encodeURIComponent(item.id)}`} asChild>
-                            <TouchableOpacity style={styles.card}>
-                                {item.image && (
-                                    <Image source={{ uri: item.image.url }} style={styles.image} />
-                                )}
-                                <View style={styles.overlay}>
-                                    <Text style={styles.collectionTitle}>{item.title}</Text>
-                                </View>
-                            </TouchableOpacity>
-                        </Link>
-                    )}
+                    renderItem={renderItem}
+                    showsVerticalScrollIndicator={false}
                 />
             )}
         </SafeAreaView>
@@ -66,36 +83,51 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     header: {
-        padding: 20,
+        paddingHorizontal: 20,
+        paddingVertical: 20,
         backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-        alignItems: 'center',
     },
     title: {
-        fontSize: 16,
+        fontSize: 28,
         fontWeight: '900',
-        letterSpacing: 2,
+        letterSpacing: 1,
+        color: '#000',
+    },
+    subtitle: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 5,
+        letterSpacing: 0.5,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
+    loadingText: {
+        color: '#999',
+        fontSize: 16,
+    },
     listContent: {
-        padding: 15,
+        paddingHorizontal: 15,
+        paddingBottom: 20,
     },
     columnWrapper: {
         justifyContent: 'space-between',
     },
     card: {
-        width: (width - 45) / 2, // 2 columns
-        height: 200,
+        width: COLUMN_WIDTH,
+        height: COLUMN_WIDTH * 1.3, // Aspect ratio 1:1.3
         marginBottom: 15,
-        borderRadius: 4,
+        borderRadius: 12,
         overflow: 'hidden',
         position: 'relative',
-        backgroundColor: '#f6f6f6',
+        backgroundColor: '#f0f0f0',
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     image: {
         width: '100%',
@@ -103,19 +135,29 @@ const styles = StyleSheet.create({
         resizeMode: 'cover',
     },
     overlay: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        padding: 10,
-        alignItems: 'center',
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.25)',
+        justifyContent: 'flex-end',
+        padding: 15,
+    },
+    textContainer: {
+
     },
     collectionTitle: {
         color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 14,
+        fontWeight: '800',
+        fontSize: 18,
         letterSpacing: 0.5,
-        textAlign: 'center',
+        marginBottom: 4,
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    exploreText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
+        letterSpacing: 1.5,
+        opacity: 0.9,
     },
 });

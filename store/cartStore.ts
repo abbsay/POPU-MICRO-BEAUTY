@@ -14,7 +14,7 @@ interface CartState {
     initializeCart: () => Promise<void>;
     addItem: (variantId: string, quantity?: number) => Promise<void>;
     resetCart: () => void;
-    associateCustomer: (accessToken: string) => Promise<void>;
+    associateCustomer: (accessToken: string) => Promise<string | null>;
 }
 
 export const useCartStore = create<CartState>()(
@@ -93,11 +93,13 @@ export const useCartStore = create<CartState>()(
                                 // @ts-ignore
                                 ShopifyCheckoutSheet.preload(cart.checkoutUrl);
                             }
+                            return cart.checkoutUrl;
                         }
                     } catch (error) {
                         console.error('Failed to associate customer to cart:', error);
                     }
                 }
+                return null;
             },
 
             resetCart: () => set({ cartId: null, lines: [], checkoutUrl: null }),

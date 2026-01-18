@@ -2,33 +2,42 @@ import { Link, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getProducts } from '../../api/shopify';
+import { getCollections, getProducts } from '../../api/shopify';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
-// Actually, let's stick to standard views to ensure compatibility if gradient isn't pre-installed, or use simple styling.
+import { Skeleton } from '../../components/ui/Skeleton';
 
 const { width } = Dimensions.get('window');
 
+// Mock data for "Promo" - in a real app this could come from a specific collection or metafield
+const PROMO_IMAGE = require('../../assets/images/adaptive-icon.png'); // Fallback or use a real URL if avaialble
+
 export default function HomeScreen() {
   const [products, setProducts] = useState<any[]>([]);
+  const [collections, setCollections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadProducts() {
+    async function loadData() {
       try {
-        const data = await getProducts(10);
-        setProducts(data);
+        const [productsData, collectionsData] = await Promise.all([
+          getProducts(10),
+          getCollections(5)
+        ]);
+        setProducts(productsData);
+        setCollections(collectionsData);
       } catch (error) {
         console.error(error);
       } finally {
         setLoading(false);
       }
     }
-    loadProducts();
+    loadData();
   }, []);
 
   const heroProduct = products[0];
-  const gridProducts = products.slice(1);
+  const newArrivals = products.slice(0, 4);
+  const bestSellers = products.slice(4);
 
   return (
     <View style={styles.container}>
@@ -45,33 +54,129 @@ export default function HomeScreen() {
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {loading ? (
-            <Text style={styles.loading}>Loading Collection...</Text>
+            <View style={{ paddingHorizontal: 20 }}>
+              {/* Hero Skeleton */}
+              <Skeleton width="100%" height={500} style={{ marginBottom: 40 }} />
+
+              {/* Collections Skeleton */}
+              <Skeleton width={200} height={24} style={{ marginBottom: 20, alignSelf: 'center' }} />
+              <View style={{ flexDirection: 'row', marginBottom: 40 }}>
+                {[1, 2, 3].map(i => (
+                  <Skeleton key={i} width={140} height={140} style={{ marginRight: 15, borderRadius: 70 }} />
+                ))}
+              </View>
+
+              {/* Grid Skeleton */}
+              <Skeleton width={200} height={24} style={{ marginBottom: 20, alignSelf: 'center' }} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                {[1, 2, 3, 4].map(i => (
+                  <View key={i} style={{ width: (width - 45) / 2, marginBottom: 40 }}>
+                    <Skeleton width="100%" height={250} style={{ marginBottom: 12 }} />
+                    <Skeleton width="80%" height={16} style={{ marginBottom: 6 }} />
+                    <Skeleton width="40%" height={16} />
+                  </View>
+                ))}
+              </View>
+            </View>
           ) : (
             <>
               {/* Hero Section */}
-              {heroProduct && (
-                <Link href={`/product/${encodeURIComponent(heroProduct.id)}`} asChild>
-                  <TouchableOpacity style={styles.heroContainer}>
+              {/* Hero Section - Dual Carousel */}
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                style={styles.heroContainer}
+                contentContainerStyle={{ width: width * 2 }} // 2 slides
+              >
+                {/* Slide 1: Bottle Bags */}
+                <Link href={`/product/${encodeURIComponent('gid://shopify/Product/7726755643611')}`} asChild>
+                  <TouchableOpacity activeOpacity={0.9} style={styles.heroSlide}>
                     <Image
-                      source={{ uri: heroProduct.images.edges[0]?.node.url }}
+                      source={require('../../assets/images/hero_bottle_bags.png')}
                       style={styles.heroImage}
                     />
                     <View style={styles.heroOverlay}>
-                      <Text style={styles.heroTag}>NEW ARRIVAL</Text>
-                      <Text style={styles.heroTitle} numberOfLines={2}>{heroProduct.title}</Text>
-                      <Text style={styles.heroPrice}>
-                        {heroProduct.priceRange.minVariantPrice.currencyCode} {heroProduct.priceRange.minVariantPrice.amount}
-                      </Text>
+                      <Text style={styles.heroTag}>ECO-FRIENDLY CHOICE</Text>
+                      <Text style={styles.heroTitle}>Bottle Bags</Text>
+                      <View style={styles.shopNowBtn}>
+                        <Text style={styles.shopNowText}>SHOP NOW</Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 </Link>
-              )}
 
-              <Text style={styles.sectionHeader}>TRENDING NOW</Text>
+                {/* Slide 2: Machine Bags */}
+                <Link href={`/product/${encodeURIComponent('gid://shopify/Product/7726755676379')}`} asChild>
+                  <TouchableOpacity activeOpacity={0.9} style={styles.heroSlide}>
+                    <Image
+                      source={require('../../assets/images/hero_machine_bags.png')}
+                      style={styles.heroImage}
+                    />
+                    <View style={styles.heroOverlay}>
+                      <Text style={styles.heroTag}>PREMIUM PROTECTION</Text>
+                      <Text style={styles.heroTitle}>Machine Bags</Text>
+                      <View style={styles.shopNowBtn}>
+                        <Text style={styles.shopNowText}>SHOP NOW</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </Link>
+              </ScrollView>
 
-              {/* Product Grid */}
+              {/* Collections Scroll */}
+              <View style={styles.collectionsSection}>
+                <Text style={styles.sectionHeader}>SHOP BY CATEGORY</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20 }}>
+                  {collections.map((collection) => (
+                    <Link key={collection.id} href={`/collection/${encodeURIComponent(collection.id)}`} asChild>
+                      <TouchableOpacity style={styles.collectionCard}>
+                        <Image source={{ uri: collection.image?.url }} style={styles.collectionImage} />
+                        <View style={styles.collectionOverlay} />
+                        <Text style={styles.collectionTitle}>{collection.title}</Text>
+                      </TouchableOpacity>
+                    </Link>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <Text style={styles.sectionHeader}>NEW ARRIVALS</Text>
               <View style={styles.grid}>
-                {gridProducts.map((product) => (
+                {newArrivals.map((product) => (
+                  <Link key={product.id} href={`/product/${encodeURIComponent(product.id)}`} asChild>
+                    <TouchableOpacity style={styles.card}>
+                      <View style={styles.imageWrapper}>
+                        <Image
+                          source={{ uri: product.images.edges[0]?.node.url }}
+                          style={styles.image}
+                        />
+                      </View>
+                      <Text style={styles.productTitle} numberOfLines={1}>
+                        {product.title}
+                      </Text>
+                      <Text style={styles.price}>
+                        {product.priceRange.minVariantPrice.currencyCode} {product.priceRange.minVariantPrice.amount}
+                      </Text>
+                    </TouchableOpacity>
+                  </Link>
+                ))}
+              </View>
+
+              {/* Promo Banner */}
+              <View style={styles.promoContainer}>
+                <Image
+                  source={{ uri: "https://images.unsplash.com/photo-1556228720-1957be982260?q=80&w=3270&auto=format&fit=crop" }} // Skincare Banner Placeholder
+                  style={styles.promoImage}
+                />
+                <View style={styles.promoContent}>
+                  <Text style={styles.promoTitle}>Radiance Boost</Text>
+                  <Text style={styles.promoSubtitle}>Discover our new skincare line</Text>
+                </View>
+              </View>
+
+              <Text style={styles.sectionHeader}>BEST SELLERS</Text>
+              <View style={styles.grid}>
+                {bestSellers.map((product) => (
                   <Link key={product.id} href={`/product/${encodeURIComponent(product.id)}`} asChild>
                     <TouchableOpacity style={styles.card}>
                       <View style={styles.imageWrapper}>
@@ -139,9 +244,12 @@ const styles = StyleSheet.create({
   },
   // Hero
   heroContainer: {
+    height: 550,
+    marginBottom: 40,
+  },
+  heroSlide: {
     width: width,
-    height: 450,
-    marginBottom: 30,
+    height: 550,
     position: 'relative',
   },
   heroImage: {
@@ -154,40 +262,110 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
-    paddingBottom: 40,
-    backgroundColor: 'rgba(0,0,0,0.3)', // Subtle gradient effect replacement
+    top: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
   heroTag: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
-    letterSpacing: 1.5,
-    marginBottom: 8,
-    opacity: 0.9,
+    fontWeight: '600',
+    fontSize: 14,
+    letterSpacing: 2,
+    marginBottom: 10,
+    textTransform: 'uppercase',
   },
   heroTitle: {
     color: '#fff',
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    fontSize: 42,
+    fontWeight: '900',
+    marginBottom: 20,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
-  heroPrice: {
+  shopNowBtn: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 2,
+  },
+  shopNowText: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 14,
+    letterSpacing: 1,
+  },
+  // Collections
+  collectionsSection: {
+    marginBottom: 40,
+  },
+  collectionCard: {
+    marginRight: 15,
+    width: 140,
+    height: 140,
+    borderRadius: 70, // Circle
+    overflow: 'hidden',
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  collectionImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  collectionOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  collectionTitle: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
+    zIndex: 1,
+    paddingHorizontal: 5,
+  },
+  // Promo
+  promoContainer: {
+    height: 300,
+    marginBottom: 40,
+    position: 'relative',
+  },
+  promoImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  promoContent: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+  },
+  promoTitle: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  promoSubtitle: {
+    color: '#fff',
+    fontSize: 16,
+    opacity: 0.9,
   },
   // Grid
   sectionHeader: {
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: 20,
+    fontWeight: '800',
     letterSpacing: 1,
     marginHorizontal: 20,
     marginBottom: 20,
     color: '#000',
+    textAlign: 'center',
+    textTransform: 'uppercase',
   },
   grid: {
     flexDirection: 'row',
@@ -197,28 +375,28 @@ const styles = StyleSheet.create({
   },
   card: {
     width: (width - 45) / 2, // 2 column with spacing
-    marginBottom: 30,
+    marginBottom: 40,
   },
   imageWrapper: {
     backgroundColor: '#f6f6f6',
-    borderRadius: 4,
+    borderRadius: 0,
     overflow: 'hidden',
     marginBottom: 12,
+    aspectRatio: 0.8,
   },
   image: {
     width: '100%',
-    height: 200,
+    height: '100%',
     resizeMode: 'cover',
   },
   productTitle: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
     marginBottom: 6,
     color: '#000',
-    letterSpacing: 0.5,
   },
   price: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#666',
     fontWeight: '400',
   },

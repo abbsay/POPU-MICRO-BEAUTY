@@ -1,4 +1,5 @@
-import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Link, router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -57,6 +58,22 @@ export default function CollectionScreen() {
                 headerBackTitle: '', // Hides back title on iOS
                 headerTintColor: '#000',
                 headerTransparent: false,
+                headerLeft: () => (
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={{
+                            marginLeft: 10,
+                            width: 40,
+                            height: 40,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            borderRadius: 12,
+                            backgroundColor: 'transparent',
+                        }}
+                    >
+                        <IconSymbol name="chevron.left" size={28} color="#000" />
+                    </TouchableOpacity>
+                ),
             }} />
 
             <FlatList

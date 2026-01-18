@@ -1,11 +1,11 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import { Link, router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Image,
-    SafeAreaView,
+    Modal,
     ScrollView,
     StyleSheet,
     Text,
@@ -14,9 +14,11 @@ import {
     View
 } from 'react-native';
 import RenderHtml from 'react-native-render-html';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getProductById } from '../../api/shopify';
 import { Colors } from '../../constants/theme';
 import { useCartStore } from '../../store/cartStore';
+import { useWishlistStore } from '../../store/wishlistStore';
 
 export default function ProductDetailScreen() {
     const { id } = useLocalSearchParams();
@@ -24,8 +26,27 @@ export default function ProductDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [addStatus, setAddStatus] = useState<'idle' | 'adding' | 'added'>('idle');
     const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+    const [quantity, setQuantity] = useState(1);
     const { width } = useWindowDimensions();
     const { addItem, lines } = useCartStore();
+    const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
+
+    const isWishlisted = product ? isInWishlist(product.id) : false;
+
+    const toggleWishlist = () => {
+        if (!product) return;
+        if (isWishlisted) {
+            removeFromWishlist(product.id);
+        } else {
+            addToWishlist({
+                id: product.id,
+                title: product.title,
+                price: currentVariant ? `${currentVariant.price.currencyCode} ${currentVariant.price.amount}` : '',
+                image: product.images.edges[0]?.node.url,
+                handle: product.handle || ''
+            });
+        }
+    };
 
     useEffect(() => {
         if (id) {
@@ -54,12 +75,12 @@ export default function ProductDetailScreen() {
         }
     }
 
-    const { currentVariant, isAvailable } = getVariantData(product, selectedOptions);
+    const { currentVariant, isAvailable, isOutOfStock } = getVariantData(product, selectedOptions);
 
     const handleAddToCart = async () => {
         if (currentVariant && addStatus === 'idle') {
             setAddStatus('adding');
-            await addItem(currentVariant.id, 1);
+            await addItem(currentVariant.id, quantity);
             setAddStatus('added');
 
             setTimeout(() => {
@@ -74,8 +95,6 @@ export default function ProductDetailScreen() {
             [optionName]: value
         }));
     };
-
-
 
     if (loading) {
         return (
@@ -102,27 +121,33 @@ export default function ProductDetailScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
             <Stack.Screen options={{
                 title: '',
                 headerTransparent: true,
                 headerTintColor: '#000',
-                headerRight: () => (
-                    <Link href="/cart" asChild>
-                        <TouchableOpacity style={{ marginRight: 16 }}>
-                            <View>
-                                <IconSymbol name="bag" size={24} color="#000" />
-                                {lines.length > 0 && (
-                                    <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{lines.length}</Text>
-                                    </View>
-                                )}
-                            </View>
-                        </TouchableOpacity>
-                    </Link>
-                )
+                headerBackTitleVisible: false,
+                headerLeft: () => (
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={{
+                            marginLeft: 10,
+                            width: 40,
+                            height: 40,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            borderRadius: 12,
+                            backgroundColor: 'transparent',
+                        }}
+                    >
+                        <IconSymbol name="chevron.left" size={28} color="#000" />
+                    </TouchableOpacity>
+                ),
+                headerRight: () => null // Removed icons from header as they are now in bottom bar
             }} />
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView contentContainerStyle={styles.scrollContent}
+                contentInsetAdjustmentBehavior="never" // Prevent automated insets from messing up the layout
+            >
                 {/* Image Gallery */}
                 <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.gallery}>
                     {product.images.edges.map((edge: any, index: number) => (
@@ -184,26 +209,6 @@ export default function ProductDetailScreen() {
                         );
                     })}
 
-                    {/* Add to Cart Button */}
-                    <TouchableOpacity
-                        style={[
-                            styles.addToCartButton,
-                            (!currentVariant) && styles.disabledButton,
-                            addStatus === 'added' && { backgroundColor: '#4CAF50' },
-                            addStatus === 'adding' && { opacity: 0.7 }
-                        ]}
-                        onPress={handleAddToCart}
-                        disabled={addStatus !== 'idle' || !currentVariant}
-                    >
-                        {addStatus === 'adding' ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.addToCartText}>
-                                {addStatus === 'added' ? 'Added to Cart!' : isAvailable ? 'Add to Cart' : 'Unavailable'}
-                            </Text>
-                        )}
-                    </TouchableOpacity>
-
                     <View style={styles.description}>
                         <Text style={styles.sectionTitle}>Description</Text>
                         <RenderHtml
@@ -214,11 +219,71 @@ export default function ProductDetailScreen() {
                     </View>
                 </View>
             </ScrollView>
+
+            {/* Bottom Action Bar */}
+            <View style={[styles.bottomBar, { paddingBottom: 20 }]}>
+                {/* 1. Home */}
+                <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={styles.iconButton}>
+                    <IconSymbol name="house.fill" size={24} color="#000" />
+                    <Text style={styles.iconLabel}>Home</Text>
+                </TouchableOpacity>
+
+                {/* 2. Quantity */}
+                <View style={styles.quantityControl}>
+                    <TouchableOpacity
+                        onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                        style={styles.qtyButton}
+                    >
+                        <Text style={styles.qtyButtonText}>-</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.qtyText}>{quantity}</Text>
+                    <TouchableOpacity
+                        onPress={() => setQuantity(quantity + 1)}
+                        style={styles.qtyButton}
+                    >
+                        <Text style={styles.qtyButtonText}>+</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* 3. Add to Cart */}
+                <TouchableOpacity
+                    style={[
+                        styles.addToCartButtonFixed,
+                        (!isAvailable) && styles.disabledButton,
+                        addStatus === 'added' && { backgroundColor: '#4CAF50' },
+                        addStatus === 'adding' && { opacity: 0.7 }
+                    ]}
+                    onPress={handleAddToCart}
+                    disabled={addStatus !== 'idle' || !isAvailable}
+                >
+                    {addStatus === 'adding' ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text style={styles.addToCartTextFixed}>
+                            {addStatus === 'added' ? 'Added' : isAvailable ? 'Add to Cart' : 'Sold Out'}
+                        </Text>
+                    )}
+                </TouchableOpacity>
+
+                {/* 4. Cart */}
+                <Link href="/cart" asChild>
+                    <TouchableOpacity style={styles.iconButton}>
+                        <View>
+                            <IconSymbol name="bag" size={24} color="#000" />
+                            {lines.length > 0 && (
+                                <View style={styles.badgeFixed}>
+                                    <Text style={styles.badgeTextFixed}>{lines.length}</Text>
+                                </View>
+                            )}
+                        </View>
+                        <Text style={styles.iconLabel}>Cart</Text>
+                    </TouchableOpacity>
+                </Link>
+            </View>
         </SafeAreaView>
     );
 }
 
-import { Modal } from 'react-native';
 
 function OptionDropdown({ value, options, onSelect }: { value: string, options: string[], onSelect: (val: string) => void }) {
     const [visible, setVisible] = useState(false);
@@ -265,7 +330,7 @@ function OptionDropdown({ value, options, onSelect }: { value: string, options: 
 
 // Helper to find matching variant
 function getVariantData(product: any, selectedOptions: Record<string, string>) {
-    if (!product || !product.variants) return { currentVariant: null, isAvailable: false };
+    if (!product || !product.variants) return { currentVariant: null, isAvailable: false, isOutOfStock: false };
 
     const variantEdge = product.variants.edges.find((edge: any) => {
         return edge.node.selectedOptions.every((opt: any) => {
@@ -273,9 +338,14 @@ function getVariantData(product: any, selectedOptions: Record<string, string>) {
         });
     });
 
+    const currentVariant = variantEdge?.node || null;
+    const isAvailable = currentVariant?.availableForSale ?? false;
+    const isOutOfStock = !!currentVariant && !isAvailable;
+
     return {
-        currentVariant: variantEdge?.node || null,
-        isAvailable: !!variantEdge
+        currentVariant,
+        isAvailable,
+        isOutOfStock
     };
 }
 
@@ -290,7 +360,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     scrollContent: {
-        paddingBottom: 40,
+        paddingBottom: 100, // Add padding for bottom bar
     },
     gallery: {
         height: 400,
@@ -304,12 +374,11 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         backgroundColor: '#fff',
-        marginTop: -20, // Overlap slightly with image
+        marginTop: -20,
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        fontFamily: 'System',
         marginBottom: 8,
         color: '#000',
     },
@@ -338,7 +407,7 @@ const styles = StyleSheet.create({
     optionChip: {
         paddingHorizontal: 16,
         paddingVertical: 8,
-        borderRadius: 20,
+        borderRadius: 12, // Square rounded
         borderWidth: 1,
         borderColor: '#ddd',
         backgroundColor: '#fff',
@@ -355,23 +424,6 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: 'bold',
     },
-    addToCartButton: {
-        backgroundColor: Colors.light.tint,
-        paddingVertical: 16,
-        borderRadius: 8,
-        alignItems: 'center',
-        marginBottom: 24,
-        marginTop: 16,
-    },
-    disabledButton: {
-        opacity: 0.5,
-        backgroundColor: '#ccc',
-    },
-    addToCartText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
@@ -381,18 +433,90 @@ const styles = StyleSheet.create({
     description: {
         marginTop: 8,
     },
-    badge: {
+
+    // Bottom Bar Styles
+    bottomBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        backgroundColor: '#fff',
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
+        // Shadow for elevation
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    iconButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 50,
+    },
+    iconLabel: {
+        fontSize: 10,
+        color: '#666',
+        marginTop: 4,
+    },
+    quantityControl: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        height: 40,
+    },
+    qtyButton: {
+        width: 32,
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    qtyButtonText: {
+        fontSize: 18,
+        color: '#333',
+    },
+    qtyText: {
+        width: 30,
+        textAlign: 'center',
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    addToCartButtonFixed: {
+        flex: 1,
+        backgroundColor: Colors.light.tint,
+        height: 44,
+        borderRadius: 12, // Square rounded
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginHorizontal: 12,
+    },
+    addToCartTextFixed: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    disabledButton: {
+        opacity: 0.5,
+        backgroundColor: '#ccc',
+    },
+    badgeFixed: {
         position: 'absolute',
         right: -6,
-        top: -6,
+        top: -4,
         backgroundColor: Colors.light.tint,
         borderRadius: 8,
         width: 16,
         height: 16,
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#fff',
     },
-    badgeText: {
+    badgeTextFixed: {
         color: '#fff',
         fontSize: 10,
         fontWeight: 'bold',
@@ -404,7 +528,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: '#ddd',
-        borderRadius: 8,
+        borderRadius: 12, // Square rounded
         paddingHorizontal: 16,
         paddingVertical: 12,
         backgroundColor: '#f9f9f9',

@@ -11,19 +11,38 @@ export const unstable_settings = {
 
 import { ShopifyCheckoutSheetProvider } from '@shopify/checkout-sheet-kit';
 
+import { ToastProvider } from '@/components/ui/Toast';
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ShopifyCheckoutSheetProvider configuration={{ preloading: true }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </ShopifyCheckoutSheetProvider>
+    <ToastProvider>
+      <ShopifyCheckoutSheetProvider configuration={{ preloading: true }}>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack screenOptions={{
+            // @ts-ignore
+            headerBackTitleVisible: false,
+            headerTintColor: '#000',
+            contentStyle: { backgroundColor: '#fff' }
+          }}>
+            <Stack.Screen name="(tabs)" options={{
+              headerShown: false,
+              // @ts-ignore
+              headerBackTitleVisible: false,
+              title: ''
+            }} />
+            <Stack.Screen name="collection/[id]" options={{ title: '' }} />
+            <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            <Stack.Screen name="account/orders" options={{ presentation: 'card' }} />
+            <Stack.Screen name="account/addresses" options={{ presentation: 'card' }} />
+            <Stack.Screen name="account/profile" options={{ presentation: 'card' }} />
+            <Stack.Screen name="account/wishlist" options={{ presentation: 'card' }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </ShopifyCheckoutSheetProvider>
+    </ToastProvider>
   );
 }
