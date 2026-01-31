@@ -25,7 +25,7 @@ export default function ProfileScreen() {
             setFirstName(customer.firstName || '');
             setLastName(customer.lastName || '');
             setEmail(customer.email || '');
-            setPhone(customer.phone || '');
+            setPhone(customer.phone || customer.defaultAddress?.phone || '');
         }
     }, [customer]);
 

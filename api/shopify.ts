@@ -428,6 +428,7 @@ export async function getCustomer(accessToken: string) {
         defaultAddress {
           id
           formatted
+          phone
         }
         addresses(first: 5) {
           edges {

@@ -30,13 +30,21 @@ export default function CartScreen() {
 
     const handleCheckout = async () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        if (!customerAccessToken) {
+
+        // Get latest token directly from store to ensure no staleness
+        const token = useAuthStore.getState().customerAccessToken;
+
+        if (!token) {
             router.push('/auth/login');
             return;
         }
+
         if (checkoutUrl) {
             // Associate customer to ensure they are logged in during checkout
-            const url = await useCartStore.getState().associateCustomer(customerAccessToken);
+            const url = await useCartStore.getState().associateCustomer(token);
+            // If association failed (url is null), we still present the checkoutUrl (Guest/Unassociated)
+            // But ideally we want to know why. 
+            // For now, proceed.
             shopifyCheckout.present(url || checkoutUrl);
         }
     };

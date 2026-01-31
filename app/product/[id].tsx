@@ -1,7 +1,8 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Skeleton } from '@/components/ui/Skeleton';
+import * as Haptics from 'expo-haptics';
 import { Link, router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Image,
@@ -13,12 +14,21 @@ import {
     useWindowDimensions,
     View
 } from 'react-native';
+import Animated, {
+    Easing,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming
+} from 'react-native-reanimated';
 import RenderHtml from 'react-native-render-html';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getProductById } from '../../api/shopify';
 import { Colors } from '../../constants/theme';
 import { useCartStore } from '../../store/cartStore';
 import { useWishlistStore } from '../../store/wishlistStore';
+
+// ...
 
 export default function ProductDetailScreen() {
     const { id } = useLocalSearchParams();
@@ -30,6 +40,14 @@ export default function ProductDetailScreen() {
     const { width } = useWindowDimensions();
     const { addItem, lines } = useCartStore();
     const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
+
+    // Animation Refs & State
+    const cartIconRef = useRef<View>(null);
+    const [flyingItem, setFlyingItem] = useState<{ uri: string } | null>(null);
+    const flyX = useSharedValue(0);
+    const flyY = useSharedValue(0);
+    const flyScale = useSharedValue(1);
+    const flyOpacity = useSharedValue(1);
 
     const isWishlisted = product ? isInWishlist(product.id) : false;
 
@@ -79,6 +97,40 @@ export default function ProductDetailScreen() {
 
     const handleAddToCart = async () => {
         if (currentVariant && addStatus === 'idle') {
+            // 1. Success Haptic
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // 2. Start Animation
+            if (product.images.edges[0]?.node.url && cartIconRef.current) {
+                cartIconRef.current.measure((x, y, w, h, pageX, pageY) => {
+                    const iconCenterX = pageX + w / 2;
+                    const iconCenterY = pageY + h / 2;
+
+                    // Start position (roughly center of image gallery)
+                    // We can refine this if we want exact start from the image
+                    const startX = width / 2;
+                    const startY = 200; // Approx center of 400px height gallery
+
+                    // Initialize values
+                    flyX.value = startX - 50; // centering the 100px flying image
+                    flyY.value = startY - 50;
+                    flyScale.value = 1;
+                    flyOpacity.value = 1;
+
+                    setFlyingItem({ uri: product.images.edges[0].node.url });
+
+                    // Animate
+                    flyX.value = withTiming(iconCenterX - 50, { duration: 600, easing: Easing.bezier(0.25, 0.1, 0.25, 1) });
+                    flyY.value = withTiming(iconCenterY - 50, { duration: 600, easing: Easing.cubic });
+                    flyScale.value = withTiming(0.1, { duration: 600 });
+                    flyOpacity.value = withTiming(0, { duration: 600 }, (finished) => {
+                        if (finished) {
+                            runOnJS(setFlyingItem)(null);
+                        }
+                    });
+                });
+            }
+
             setAddStatus('adding');
             await addItem(currentVariant.id, quantity);
             setAddStatus('added');
@@ -88,6 +140,17 @@ export default function ProductDetailScreen() {
             }, 2000);
         }
     };
+
+    const flyingStyle = useAnimatedStyle(() => {
+        return {
+            transform: [
+                { translateX: flyX.value },
+                { translateY: flyY.value },
+                { scale: flyScale.value }
+            ],
+            opacity: flyOpacity.value
+        };
+    });
 
     const handleOptionSelect = (optionName: string, value: string) => {
         setSelectedOptions(prev => ({
@@ -150,9 +213,20 @@ export default function ProductDetailScreen() {
             >
                 {/* Image Gallery */}
                 <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.gallery}>
-                    {product.images.edges.map((edge: any, index: number) => (
-                        <Image key={index} source={{ uri: edge.node.url }} style={[styles.image, { width }]} />
-                    ))}
+                    {product.images.edges.map((edge: any, index: number) => {
+                        const ImageComponent = index === 0 ? Animated.Image : Image;
+                        const context = typeof origin === 'string' ? origin : 'shop';
+                        const extraProps = index === 0 ? { sharedTransitionTag: `product-image-${context}-${product.id}` } : {};
+
+                        return (
+                            <ImageComponent
+                                key={index}
+                                source={{ uri: edge.node.url }}
+                                style={[styles.image, { width }]}
+                                {...extraProps}
+                            />
+                        );
+                    })}
                 </ScrollView>
 
                 <View style={styles.infoContainer}>
@@ -220,6 +294,17 @@ export default function ProductDetailScreen() {
                 </View>
             </ScrollView>
 
+            {/* Flying Image for Animation */}
+            {flyingItem && (
+                <Animated.Image
+                    source={{ uri: flyingItem.uri }}
+                    style={[
+                        styles.flyingImage,
+                        flyingStyle,
+                    ]}
+                />
+            )}
+
             {/* Bottom Action Bar */}
             <View style={[styles.bottomBar, { paddingBottom: 20 }]}>
                 {/* 1. Home */}
@@ -267,8 +352,10 @@ export default function ProductDetailScreen() {
 
                 {/* 4. Cart */}
                 <Link href="/cart" asChild>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <View>
+                    <TouchableOpacity
+                        style={styles.iconButton}
+                    >
+                        <View ref={cartIconRef} collapsable={false}>
                             <IconSymbol name="bag" size={24} color="#000" />
                             {lines.length > 0 && (
                                 <View style={styles.badgeFixed}>
@@ -283,6 +370,8 @@ export default function ProductDetailScreen() {
         </SafeAreaView>
     );
 }
+
+// ... styles ...
 
 
 function OptionDropdown({ value, options, onSelect }: { value: string, options: string[], onSelect: (val: string) => void }) {
@@ -576,5 +665,15 @@ const styles = StyleSheet.create({
     },
     modalOptionTextSelected: {
         fontWeight: 'bold',
+    },
+    flyingImage: {
+        position: 'absolute',
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        zIndex: 9999,
+        top: 0,
+        left: 0,
+        resizeMode: 'cover',
     },
 });

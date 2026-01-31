@@ -4,6 +4,7 @@ import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getCollections, getProducts } from '../../api/shopify';
 
+import { ProductCard } from '@/components/ProductCard';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Skeleton } from '../../components/ui/Skeleton';
 
@@ -70,8 +71,8 @@ export default function HomeScreen() {
               <Skeleton width={200} height={24} style={{ marginBottom: 20, alignSelf: 'center' }} />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                 {[1, 2, 3, 4].map(i => (
-                  <View key={i} style={{ width: (width - 45) / 2, marginBottom: 40 }}>
-                    <Skeleton width="100%" height={250} style={{ marginBottom: 12 }} />
+                  <View key={i} style={{ width: Math.floor((width - 40 - 16) / 2), marginBottom: 40 }}>
+                    <Skeleton width="100%" height={Math.floor((width - 40 - 16) / 2)} style={{ marginBottom: 12 }} />
                     <Skeleton width="80%" height={16} style={{ marginBottom: 6 }} />
                     <Skeleton width="40%" height={16} />
                   </View>
@@ -143,22 +144,7 @@ export default function HomeScreen() {
               <Text style={styles.sectionHeader}>NEW ARRIVALS</Text>
               <View style={styles.grid}>
                 {newArrivals.map((product) => (
-                  <Link key={product.id} href={`/product/${encodeURIComponent(product.id)}`} asChild>
-                    <TouchableOpacity style={styles.card}>
-                      <View style={styles.imageWrapper}>
-                        <Image
-                          source={{ uri: product.images.edges[0]?.node.url }}
-                          style={styles.image}
-                        />
-                      </View>
-                      <Text style={styles.productTitle} numberOfLines={1}>
-                        {product.title}
-                      </Text>
-                      <Text style={styles.price}>
-                        {product.priceRange.minVariantPrice.currencyCode} {product.priceRange.minVariantPrice.amount}
-                      </Text>
-                    </TouchableOpacity>
-                  </Link>
+                  <ProductCard key={product.id} product={product} origin="home" />
                 ))}
               </View>
 
@@ -177,22 +163,7 @@ export default function HomeScreen() {
               <Text style={styles.sectionHeader}>BEST SELLERS</Text>
               <View style={styles.grid}>
                 {bestSellers.map((product) => (
-                  <Link key={product.id} href={`/product/${encodeURIComponent(product.id)}`} asChild>
-                    <TouchableOpacity style={styles.card}>
-                      <View style={styles.imageWrapper}>
-                        <Image
-                          source={{ uri: product.images.edges[0]?.node.url }}
-                          style={styles.image}
-                        />
-                      </View>
-                      <Text style={styles.productTitle} numberOfLines={1}>
-                        {product.title}
-                      </Text>
-                      <Text style={styles.price}>
-                        {product.priceRange.minVariantPrice.currencyCode} {product.priceRange.minVariantPrice.amount}
-                      </Text>
-                    </TouchableOpacity>
-                  </Link>
+                  <ProductCard key={product.id} product={product} origin="home" />
                 ))}
               </View>
 
@@ -370,35 +341,8 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 15,
+    paddingHorizontal: 20, // Standardized padding to 20
     justifyContent: 'space-between',
-  },
-  card: {
-    width: (width - 45) / 2, // 2 column with spacing
-    marginBottom: 40,
-  },
-  imageWrapper: {
-    backgroundColor: '#f6f6f6',
-    borderRadius: 0,
-    overflow: 'hidden',
-    marginBottom: 12,
-    aspectRatio: 0.8,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  productTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 6,
-    color: '#000',
-  },
-  price: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '400',
   },
   emptyState: {
     padding: 20,

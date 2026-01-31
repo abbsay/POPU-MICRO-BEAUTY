@@ -1,14 +1,17 @@
+import { ProductCard } from '@/components/ProductCard';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Skeleton } from '@/components/ui/Skeleton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Dimensions, FlatList, Image, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getProducts, searchProducts } from '../../api/shopify';
 
 const { width } = Dimensions.get('window');
-const COLUMN_WIDTH = (width - 40) / 2;
+// Standardize padding and spacing
+const HORIZONTAL_PADDING = 20;
 
 const SEARCH_HISTORY_KEY = 'search_history';
 
@@ -19,11 +22,19 @@ export default function SearchScreen() {
     const [hasSearched, setHasSearched] = useState(false);
     const [history, setHistory] = useState<string[]>([]);
     const [popularProducts, setPopularProducts] = useState<any[]>([]);
+    const [pageLoading, setPageLoading] = useState(true);
 
     useEffect(() => {
-        loadHistory();
-        loadPopularProducts();
+        loadInitialData();
     }, []);
+
+    const loadInitialData = async () => {
+        try {
+            await Promise.all([loadHistory(), loadPopularProducts()]);
+        } finally {
+            setPageLoading(false);
+        }
+    };
 
     const loadHistory = async () => {
         try {
@@ -83,29 +94,19 @@ export default function SearchScreen() {
         setHasSearched(false);
     };
 
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+    const toggleViewMode = () => {
+        setViewMode(prev => prev === 'grid' ? 'list' : 'grid');
+    };
+
     const renderItem = ({ item, index }: { item: any; index: number }) => (
-        <Link key={item.id} href={`/product/${encodeURIComponent(item.id)}`} asChild>
-            <TouchableOpacity activeOpacity={0.9}>
-                <Animated.View
-                    entering={FadeInDown.delay(index * 50).springify()}
-                    layout={Layout.springify()}
-                    style={styles.card}
-                >
-                    <View style={styles.imageWrapper}>
-                        <Image
-                            source={{ uri: item.images.edges[0]?.node.url }}
-                            style={styles.image}
-                        />
-                    </View>
-                    <Text style={styles.productTitle} numberOfLines={1}>
-                        {item.title}
-                    </Text>
-                    <Text style={styles.price}>
-                        {item.priceRange.minVariantPrice.currencyCode} {item.priceRange.minVariantPrice.amount}
-                    </Text>
-                </Animated.View>
-            </TouchableOpacity>
-        </Link>
+        <Animated.View
+            entering={FadeInDown.delay(index * 50).springify()}
+            layout={Layout.springify()}
+        >
+            <ProductCard product={item} viewMode={viewMode} origin="search" />
+        </Animated.View>
     );
 
     return (
@@ -113,7 +114,15 @@ export default function SearchScreen() {
             <Stack.Screen options={{ headerShown: false }} />
 
             <View style={styles.header}>
+                <View style={{ width: 40 }} />
                 <Text style={styles.title}>SEARCH</Text>
+                <TouchableOpacity onPress={toggleViewMode} style={styles.headerButton}>
+                    <IconSymbol
+                        name={viewMode === 'grid' ? 'list.bullet' : 'square.grid.2x2'}
+                        size={22}
+                        color="#000"
+                    />
+                </TouchableOpacity>
             </View>
 
             <View style={styles.searchContainer}>
@@ -138,12 +147,20 @@ export default function SearchScreen() {
 
             {loading ? (
                 <View style={styles.loadingContainer}>
-                    <Text>Searching...</Text>
+                    <View style={styles.skeletonGrid}>
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                            <View key={i} style={{ width: Math.floor((width - 40 - 16) / 2), marginBottom: 24 }}>
+                                <Skeleton width="100%" height={Math.floor((width - 40 - 16) / 2)} style={{ marginBottom: 10, borderRadius: 8 }} />
+                                <Skeleton width="80%" height={15} style={{ marginBottom: 5 }} />
+                                <Skeleton width="40%" height={15} />
+                            </View>
+                        ))}
+                    </View>
                 </View>
             ) : (
                 <View style={{ flex: 1 }}>
                     {!hasSearched && query.length === 0 ? (
-                        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+                        <ScrollView contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: HORIZONTAL_PADDING }}>
                             {/* History Section */}
                             {history.length > 0 && (
                                 <View style={styles.section}>
@@ -169,33 +186,30 @@ export default function SearchScreen() {
                             )}
 
                             {/* Popular Products */}
-                            <View style={[styles.section, { marginTop: 20 }]}>
-                                <Text style={styles.sectionTitle}>POPULAR NOW</Text>
-                                <View style={styles.popularGrid}>
-                                    {popularProducts.map((item, index) => (
-                                        <Link key={item.id} href={`/product/${encodeURIComponent(item.id)}`} asChild>
-                                            <TouchableOpacity style={styles.popularCard}>
-                                                <Image source={{ uri: item.images.edges[0]?.node.url }} style={styles.popularImage} />
-                                                <View style={styles.popularInfo}>
-                                                    <Text style={styles.popularTitle} numberOfLines={2}>{item.title}</Text>
-                                                    <Text style={styles.popularPrice}>{item.priceRange.minVariantPrice.currencyCode} {item.priceRange.minVariantPrice.amount}</Text>
-                                                </View>
-                                            </TouchableOpacity>
-                                        </Link>
-                                    ))}
+                            {popularProducts.length > 0 && (
+                                <View style={[styles.section, { marginTop: 30 }]}>
+                                    <Text style={styles.sectionTitle}>POPULAR NOW</Text>
+                                    <View style={styles.popularGrid}>
+                                        {popularProducts.map((item, index) => (
+                                            <ProductCard key={item.id} product={item} />
+                                        ))}
+                                    </View>
                                 </View>
-                            </View>
+                            )}
                         </ScrollView>
                     ) : (
                         <FlatList
+                            key={viewMode}
                             data={results}
                             keyExtractor={(item) => item.id}
-                            numColumns={2}
-                            columnWrapperStyle={styles.columnWrapper}
+                            numColumns={viewMode === 'grid' ? 2 : 1}
+                            columnWrapperStyle={viewMode === 'grid' ? styles.columnWrapper : undefined}
                             contentContainerStyle={styles.listContent}
                             ListEmptyComponent={
                                 <View style={styles.emptyState}>
+                                    <IconSymbol name="magnifyingglass" size={48} color="#eee" style={{ marginBottom: 10 }} />
                                     <Text style={styles.emptyText}>No results found.</Text>
+                                    <Text style={styles.emptySubText}>Try searching for something else.</Text>
                                 </View>
                             }
                             renderItem={renderItem}
@@ -214,9 +228,16 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     header: {
-        paddingVertical: 20,
+        paddingVertical: 15,
         backgroundColor: '#fff',
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+    },
+    headerButton: {
+        width: 40,
+        alignItems: 'flex-end',
     },
     title: {
         fontSize: 16,
@@ -224,8 +245,8 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
     },
     searchContainer: {
-        paddingHorizontal: 20,
-        paddingBottom: 20,
+        paddingHorizontal: HORIZONTAL_PADDING,
+        paddingBottom: 15,
     },
     searchBar: {
         flexDirection: 'row',
@@ -245,8 +266,17 @@ const styles = StyleSheet.create({
         padding: 5,
     },
     loadingContainer: {
-        padding: 20,
-        alignItems: 'center',
+        flex: 1,
+        paddingHorizontal: 15,
+    },
+    skeletonGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+    },
+    skeletonCard: {
+        width: (width - 45) / 2, // Matches ProductCard width logic
+        marginBottom: 20,
     },
     listContent: {
         paddingHorizontal: 15,
@@ -255,44 +285,22 @@ const styles = StyleSheet.create({
     columnWrapper: {
         justifyContent: 'space-between',
     },
-    card: {
-        width: COLUMN_WIDTH,
-        marginBottom: 30,
-    },
-    imageWrapper: {
-        backgroundColor: '#f6f6f6',
-        borderRadius: 4,
-        overflow: 'hidden',
-        marginBottom: 12,
-        height: 200,
-    },
-    image: {
-        width: '100%',
-        height: '100%',
-        resizeMode: 'cover',
-    },
-    productTitle: {
-        fontSize: 13,
-        fontWeight: '500',
-        marginBottom: 6,
-        color: '#000',
-    },
-    price: {
-        fontSize: 13,
-        color: '#666',
-        fontWeight: 'bold',
-    },
     emptyState: {
-        marginTop: 50,
+        marginTop: 80,
         alignItems: 'center',
     },
     emptyText: {
-        color: '#999',
-        fontSize: 16,
+        color: '#333',
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 8,
     },
-    // New Sections
+    emptySubText: {
+        color: '#999',
+        fontSize: 14,
+    },
+    // Sections
     section: {
-        paddingHorizontal: 20,
         marginBottom: 10,
     },
     sectionHeaderRow: {
@@ -306,11 +314,11 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#999',
         letterSpacing: 1,
-        marginBottom: 15, // Default for non-row headers
+        marginBottom: 15,
     },
     clearHistoryText: {
         fontSize: 12,
-        color: 'red',
+        color: '#666', // More subtle than red
         fontWeight: '500',
     },
     tagsWrapper: {
@@ -324,12 +332,12 @@ const styles = StyleSheet.create({
         backgroundColor: '#f9f9f9',
         paddingHorizontal: 12,
         paddingVertical: 8,
-        borderRadius: 4,
+        borderRadius: 20, // More rounded tags
         borderWidth: 1,
         borderColor: '#eee',
     },
     tagText: {
-        fontSize: 14,
+        fontSize: 13,
         color: '#333',
     },
     // Popular
@@ -337,33 +345,5 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-    },
-    popularCard: {
-        width: '48%',
-        marginBottom: 20,
-        flexDirection: 'row', // Horizontal mini cards? Or just vertical grid?
-        // Let's do vertical grid for popular
-        backgroundColor: '#fff',
-    },
-    popularImage: {
-        width: '100%',
-        height: 150,
-        borderRadius: 8,
-        backgroundColor: '#f0f0f0',
-        marginBottom: 8,
-    },
-    popularInfo: {
-
-    },
-    popularTitle: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: '#000',
-        marginBottom: 4,
-    },
-    popularPrice: {
-        fontSize: 12,
-        color: '#666',
-        fontWeight: 'bold',
     },
 });

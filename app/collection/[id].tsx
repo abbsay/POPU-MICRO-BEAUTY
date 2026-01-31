@@ -1,17 +1,21 @@
+import { ProductCard } from '@/components/ProductCard';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Link, router, Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getCollectionProducts } from '../../api/shopify';
 import { Colors } from '../../constants/theme';
-
-const { width } = Dimensions.get('window');
 
 export default function CollectionScreen() {
     const { id } = useLocalSearchParams();
     const [collection, setCollection] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+    const toggleViewMode = () => {
+        setViewMode(prev => prev === 'grid' ? 'list' : 'grid');
+    };
 
     useEffect(() => {
         if (id) {
@@ -61,50 +65,41 @@ export default function CollectionScreen() {
                 headerLeft: () => (
                     <TouchableOpacity
                         onPress={() => router.back()}
-                        style={{
-                            marginLeft: 10,
-                            width: 40,
-                            height: 40,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            borderRadius: 12,
-                            backgroundColor: 'transparent',
-                        }}
+                        style={styles.backButton}
                     >
                         <IconSymbol name="chevron.left" size={28} color="#000" />
                     </TouchableOpacity>
                 ),
+                headerRight: () => (
+                    <TouchableOpacity
+                        onPress={toggleViewMode}
+                        style={styles.headerButton}
+                    >
+                        <IconSymbol
+                            name={viewMode === 'grid' ? 'list.bullet' : 'square.grid.2x2'}
+                            size={22}
+                            color="#000"
+                        />
+                    </TouchableOpacity>
+                )
             }} />
 
             <FlatList
+                key={viewMode} // Force re-render when changing columns
                 data={products}
                 keyExtractor={(item) => item.id}
-                numColumns={2}
-                columnWrapperStyle={styles.columnWrapper}
+                numColumns={viewMode === 'grid' ? 2 : 1}
+                columnWrapperStyle={viewMode === 'grid' ? styles.columnWrapper : undefined}
                 contentContainerStyle={styles.listContent}
                 renderItem={({ item }) => (
-                    <Link key={item.id} href={`/product/${encodeURIComponent(item.id)}`} asChild>
-                        <TouchableOpacity style={styles.card}>
-                            <View style={styles.imageWrapper}>
-                                <Image
-                                    source={{ uri: item.images.edges[0]?.node.url }}
-                                    style={styles.image}
-                                />
-                            </View>
-                            <Text style={styles.productTitle} numberOfLines={1}>
-                                {item.title}
-                            </Text>
-                            <Text style={styles.price}>
-                                {item.priceRange.minVariantPrice.currencyCode} {item.priceRange.minVariantPrice.amount}
-                            </Text>
-                        </TouchableOpacity>
-                    </Link>
+                    <ProductCard product={item} viewMode={viewMode} origin="collection" />
                 )}
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
                         <Text>No products in this collection.</Text>
                     </View>
                 }
+                showsVerticalScrollIndicator={false}
             />
         </SafeAreaView>
     );
@@ -121,36 +116,25 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#fff',
     },
+    backButton: {
+        marginLeft: 10,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 12,
+        backgroundColor: 'transparent',
+    },
+    headerButton: {
+        paddingRight: 10,
+    },
     listContent: {
-        padding: 15,
+        paddingHorizontal: 20, // Standardized 20px padding (was 15)
+        paddingTop: 15,        // Explicit top padding for spacing from header
+        paddingBottom: 20,
     },
     columnWrapper: {
         justifyContent: 'space-between',
-    },
-    card: {
-        width: (width - 45) / 2,
-        marginBottom: 30,
-    },
-    imageWrapper: {
-        backgroundColor: '#f6f6f6',
-        borderRadius: 4,
-        overflow: 'hidden',
-        marginBottom: 12,
-    },
-    image: {
-        width: '100%',
-        height: 180,
-        resizeMode: 'cover',
-    },
-    productTitle: {
-        fontSize: 13,
-        fontWeight: '500',
-        marginBottom: 6,
-        color: '#000',
-    },
-    price: {
-        fontSize: 13,
-        color: '#666',
     },
     emptyState: {
         marginTop: 50,

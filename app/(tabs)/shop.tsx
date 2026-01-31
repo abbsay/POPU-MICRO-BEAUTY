@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -42,7 +43,6 @@ export default function ShopScreen() {
                     <View style={styles.overlay}>
                         <View style={styles.textContainer}>
                             <Text style={styles.collectionTitle}>{item.title}</Text>
-                            <Text style={styles.exploreText}>EXPLORE</Text>
                         </View>
                     </View>
                 </Animated.View>
@@ -57,6 +57,19 @@ export default function ShopScreen() {
                 <Text style={styles.title}>COLLECTIONS</Text>
                 <Text style={styles.subtitle}>Curated just for you</Text>
             </Animated.View>
+
+            <Link href="/design" asChild>
+                <TouchableOpacity style={styles.bannerContainer}>
+                    <View style={styles.bannerContent}>
+                        <MaterialCommunityIcons name="face-woman-shimmer" size={32} color="#fff" />
+                        <View>
+                            <Text style={styles.bannerTitle}>Design Your Eyebrows</Text>
+                            <Text style={styles.bannerSubtitle}>Try it now!</Text>
+                        </View>
+                    </View>
+                    <MaterialCommunityIcons name="arrow-right" size={24} color="#fff" />
+                </TouchableOpacity>
+            </Link>
 
             {loading ? (
                 <View style={styles.loadingContainer}>
@@ -153,11 +166,34 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 3,
     },
-    exploreText: {
+    bannerContainer: {
+        backgroundColor: '#000',
+        marginHorizontal: 20,
+        marginBottom: 20,
+        padding: 20,
+        borderRadius: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        shadowColor: '#E8A0BF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    bannerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15,
+    },
+    bannerTitle: {
         color: '#fff',
-        fontSize: 10,
+        fontSize: 18,
         fontWeight: 'bold',
-        letterSpacing: 1.5,
-        opacity: 0.9,
+    },
+    bannerSubtitle: {
+        color: '#E8A0BF',
+        fontSize: 14,
+        marginTop: 2,
     },
 });
