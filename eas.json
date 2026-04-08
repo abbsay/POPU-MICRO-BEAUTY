@@ -1,0 +1,31 @@
+{
+    "cli": {
+        "version": ">= 7.0.0"
+    },
+    "build": {
+        "development": {
+            "developmentClient": true,
+            "distribution": "internal"
+        },
+        "preview": {
+            "distribution": "internal"
+        },
+        "production": {
+            "channel": "production",
+            "ios": {
+                "resourceClass": "medium"
+            },
+            "env": {
+                "EXPO_PUBLIC_SHOPIFY_STORE_DOMAIN": "popumicrobeauty.myshopify.com",
+                "EXPO_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN": "4f2b70fcf05a4bd1dc4387e0b174e9e3"
+            }
+        }
+    },
+    "submit": {
+        "production": {
+            "ios": {
+                "ascAppId": "6758688074"
+            }
+        }
+    }
+}

@@ -29,14 +29,27 @@ export function ProductCard({ product, style, viewMode = 'grid', origin = 'shop'
     const transitionTag = `product-image-${origin}-${product.id}`;
 
     const handleQuickAdd = async (e: any) => {
-        // Stop propagation if possible, though handling in RN requires the inner touchable to grab the touch
+        // Stop propagation
         e.preventDefault && e.preventDefault();
+        // e.stopPropagation && e.stopPropagation(); // Try this if supported by the event wrapper
 
+        console.log('[ProductCard] Quick Add Pressed');
+        if (!variantId) {
+            console.log('[ProductCard] No variantId found for quick add');
+            // Fallback: Navigate to product page if no variant ID (e.g. requires selection)
+            router.push(`/product/${encodeURIComponent(product.id)}?origin=${origin}`);
+            return;
+        }
+
+        console.log('[ProductCard] Adding variant:', variantId);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-        if (variantId) {
+        try {
             await addItem(variantId, 1);
             showToast('Added to bag');
+        } catch (error) {
+            console.error('[ProductCard] Add to cart failed:', error);
+            showToast('Failed to add');
         }
     };
 

@@ -23,6 +23,7 @@ export default function RootLayout() {
           <Stack screenOptions={{
             // @ts-ignore
             headerBackTitleVisible: false,
+            headerBackTitle: ' ', // Force space to hide text
             headerTintColor: '#000',
             contentStyle: { backgroundColor: '#fff' }
           }}>
@@ -30,15 +31,17 @@ export default function RootLayout() {
               headerShown: false,
               // @ts-ignore
               headerBackTitleVisible: false,
+              headerBackTitle: '',
               title: ''
             }} />
-            <Stack.Screen name="collection/[id]" options={{ title: '' }} />
-            <Stack.Screen name="product/[id]" options={{ presentation: 'card' }} />
+            <Stack.Screen name="collection/[id]" options={{ title: '', headerBackTitle: '' }} />
+            <Stack.Screen name="product/[id]" options={{ presentation: 'card', headerBackTitle: '' }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            <Stack.Screen name="account/orders" options={{ presentation: 'card' }} />
-            <Stack.Screen name="account/addresses" options={{ presentation: 'card' }} />
-            <Stack.Screen name="account/profile" options={{ presentation: 'card' }} />
-            <Stack.Screen name="account/wishlist" options={{ presentation: 'card' }} />
+            <Stack.Screen name="account/orders" options={{ presentation: 'card', headerBackTitle: '' }} />
+            <Stack.Screen name="account/addresses" options={{ presentation: 'card', headerBackTitle: '' }} />
+            <Stack.Screen name="account/profile" options={{ presentation: 'card', headerBackTitle: '' }} />
+            <Stack.Screen name="account/wishlist" options={{ presentation: 'card', headerBackTitle: '' }} />
+            <Stack.Screen name="design" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

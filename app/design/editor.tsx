@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
-import { useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,10 +10,17 @@ import { captureRef } from 'react-native-view-shot';
 import { EyebrowOverlay } from '../../components/EyebrowOverlay';
 
 export default function DesignEditorScreen() {
-    const [image, setImage] = useState<string | null>(null);
+    const { initialImage } = useLocalSearchParams();
+    const [image, setImage] = useState<string | null>(initialImage as string | null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const imageRef = useRef<View>(null);
+
+    useEffect(() => {
+        if (initialImage) {
+            setImage(initialImage as string);
+        }
+    }, [initialImage]);
 
     const [status, requestPermission] = MediaLibrary.usePermissions();
 

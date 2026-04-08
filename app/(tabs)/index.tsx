@@ -1,11 +1,11 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getCollections, getProducts } from '../../api/shopify';
+import { getCollections, getProducts, searchProducts, getMainPromotionProducts } from '../../api/shopify';
 
 import { ProductCard } from '@/components/ProductCard';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Skeleton } from '../../components/ui/Skeleton';
 
 const { width } = Dimensions.get('window');
@@ -16,17 +16,47 @@ const PROMO_IMAGE = require('../../assets/images/adaptive-icon.png'); // Fallbac
 export default function HomeScreen() {
   const [products, setProducts] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
+  const [heroItems, setHeroItems] = useState<any[]>([]); // Dedicated state for hero
+  const [newArrivals, setNewArrivals] = useState<any[]>([]);
+  const [bestSellers, setBestSellers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [productsData, collectionsData] = await Promise.all([
-          getProducts(10),
-          getCollections(5)
+        const [productsData, collectionsDataRaw, hero1, hero2, newArrivalsData, bestSellersData] = await Promise.all([
+          getProducts(20),
+          getCollections(30),
+          searchProducts('POPU CLOVER CARTRIDGE NEEDLES'),
+          searchProducts('POPU DIVA'), // Using 'POPU DIVA' to be safe against typos/long names
+          getMainPromotionProducts(4, "CREATED_AT", true),
+          getMainPromotionProducts(4, "BEST_SELLING", false)
         ]);
         setProducts(productsData);
-        setCollections(collectionsData);
+
+        const topCollectionTitles = [
+          "PMU machine kit",
+          "POPU PMU Machines",
+          "POPU PMU Cartridges",
+          "SMP Cartridges Needles",
+          "Vernus Microneedle Cartridges",
+          "Permanent Makeup Practice Skin",
+          "Cups"
+        ];
+        
+        const filteredCollections = topCollectionTitles
+          .map(title => collectionsDataRaw.find((c: any) => c.title === title))
+          .filter(Boolean);
+          
+        setCollections(filteredCollections.length > 0 ? filteredCollections : collectionsDataRaw.slice(0, 7));
+
+        // Prepare hero items
+        const h1 = hero1?.[0] || productsData[0];
+        const h2 = hero2?.[0] || productsData[1];
+        setHeroItems([h1, h2].filter(Boolean));
+        setNewArrivals(newArrivalsData);
+        setBestSellers(bestSellersData);
+        
       } catch (error) {
         console.error(error);
       } finally {
@@ -37,8 +67,6 @@ export default function HomeScreen() {
   }, []);
 
   const heroProduct = products[0];
-  const newArrivals = products.slice(0, 4);
-  const bestSellers = products.slice(4);
 
   return (
     <View style={styles.container}>
@@ -46,9 +74,9 @@ export default function HomeScreen() {
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.header}>
           <Text style={styles.brandTitle}>POPU</Text>
-          <Link href="/cart" asChild>
+          <Link href="/design" asChild>
             <TouchableOpacity style={styles.cartBtn}>
-              <IconSymbol name="bag" size={24} color="#000" />
+              <MaterialCommunityIcons name="face-woman-shimmer" size={24} color="#000" />
             </TouchableOpacity>
           </Link>
         </View>
@@ -88,53 +116,51 @@ export default function HomeScreen() {
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 style={styles.heroContainer}
-                contentContainerStyle={{ width: width * 2 }} // 2 slides
+                contentContainerStyle={{ width: width * 2 }} // Fixed 2 slides
               >
-                {/* Slide 1: Bottle Bags */}
-                <Link href={`/product/${encodeURIComponent('gid://shopify/Product/7726755643611')}`} asChild>
-                  <TouchableOpacity activeOpacity={0.9} style={styles.heroSlide}>
-                    <Image
-                      source={require('../../assets/images/hero_bottle_bags.png')}
-                      style={styles.heroImage}
-                    />
-                    <View style={styles.heroOverlay}>
-                      <Text style={styles.heroTag}>ECO-FRIENDLY CHOICE</Text>
-                      <Text style={styles.heroTitle}>Bottle Bags</Text>
-                      <View style={styles.shopNowBtn}>
-                        <Text style={styles.shopNowText}>SHOP NOW</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                </Link>
+                {heroItems.map((product, index) => {
+                  // Customize title/tag based on the product (index 0 is Clover, 1 is Diva)
+                  const isClover = index === 0;
+                  const customTitle = isClover ? "POPU PMU CARTRIDGES" : "POPU PMU MACHINES";
+                  const customTag = isClover ? "PRECISION & SAFETY" : "INNOVATIVE DESIGN";
 
-                {/* Slide 2: Machine Bags */}
-                <Link href={`/product/${encodeURIComponent('gid://shopify/Product/7726755676379')}`} asChild>
-                  <TouchableOpacity activeOpacity={0.9} style={styles.heroSlide}>
-                    <Image
-                      source={require('../../assets/images/hero_machine_bags.png')}
-                      style={styles.heroImage}
-                    />
-                    <View style={styles.heroOverlay}>
-                      <Text style={styles.heroTag}>PREMIUM PROTECTION</Text>
-                      <Text style={styles.heroTitle}>Machine Bags</Text>
-                      <View style={styles.shopNowBtn}>
-                        <Text style={styles.shopNowText}>SHOP NOW</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                </Link>
+                  return (
+                    <Link key={product.id + index} href={`/product/${encodeURIComponent(product.id)}?origin=home_hero`} asChild>
+                      <TouchableOpacity activeOpacity={0.9} style={styles.heroSlide}>
+                        {product.images?.edges?.[0]?.node?.url ? (
+                          <Image
+                            source={{ uri: product.images.edges[0].node.url }}
+                            style={styles.heroImage}
+                          />
+                        ) : (
+                          <View style={[styles.heroImage, { backgroundColor: '#ddd' }]} />
+                        )}
+                        <View style={styles.heroOverlay}>
+                          <Text style={styles.heroTag}>{customTag}</Text>
+                          <Text style={styles.heroTitle} numberOfLines={2}>
+                            {customTitle}
+                          </Text>
+                          <View style={styles.shopNowBtn}>
+                            <Text style={styles.shopNowText}>SHOP NOW</Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    </Link>
+                  );
+                })}
               </ScrollView>
 
               {/* Collections Scroll */}
               <View style={styles.collectionsSection}>
-                <Text style={styles.sectionHeader}>SHOP BY CATEGORY</Text>
+                <Text style={styles.sectionHeader}>Top Collections</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: 20 }}>
                   {collections.map((collection) => (
                     <Link key={collection.id} href={`/collection/${encodeURIComponent(collection.id)}`} asChild>
                       <TouchableOpacity style={styles.collectionCard}>
-                        <Image source={{ uri: collection.image?.url }} style={styles.collectionImage} />
-                        <View style={styles.collectionOverlay} />
-                        <Text style={styles.collectionTitle}>{collection.title}</Text>
+                        <View style={styles.collectionImageContainer}>
+                          <Image source={{ uri: collection.image?.url }} style={styles.collectionImage} />
+                        </View>
+                        <Text numberOfLines={2} style={styles.collectionTitle}>{collection.title}</Text>
                       </TouchableOpacity>
                     </Link>
                   ))}
@@ -149,16 +175,20 @@ export default function HomeScreen() {
               </View>
 
               {/* Promo Banner */}
-              <View style={styles.promoContainer}>
-                <Image
-                  source={{ uri: "https://images.unsplash.com/photo-1556228720-1957be982260?q=80&w=3270&auto=format&fit=crop" }} // Skincare Banner Placeholder
-                  style={styles.promoImage}
-                />
-                <View style={styles.promoContent}>
-                  <Text style={styles.promoTitle}>Radiance Boost</Text>
-                  <Text style={styles.promoSubtitle}>Discover our new skincare line</Text>
-                </View>
-              </View>
+              {/* Promo Banner */}
+              {/* Design Your Eyebrows Banner */}
+              <Link href="/design" asChild>
+                <TouchableOpacity style={styles.bannerContainer}>
+                  <View style={styles.bannerContent}>
+                    <MaterialCommunityIcons name="face-woman-shimmer" size={32} color="#fff" />
+                    <View>
+                      <Text style={styles.bannerTitle}>Design Your Eyebrows</Text>
+                      <Text style={styles.bannerSubtitle}>Try it now!</Text>
+                    </View>
+                  </View>
+                  <MaterialCommunityIcons name="arrow-right" size={24} color="#fff" />
+                </TouchableOpacity>
+              </Link>
 
               <Text style={styles.sectionHeader}>BEST SELLERS</Text>
               <View style={styles.grid}>
@@ -275,30 +305,25 @@ const styles = StyleSheet.create({
   collectionCard: {
     marginRight: 15,
     width: 140,
-    height: 140,
-    borderRadius: 70, // Circle
-    overflow: 'hidden',
-    position: 'relative',
-    justifyContent: 'center',
     alignItems: 'center',
+  },
+  collectionImageContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 8,
+    overflow: 'hidden',
     backgroundColor: '#f0f0f0',
+    marginBottom: 8,
   },
   collectionImage: {
     width: '100%',
     height: '100%',
-    position: 'absolute',
-  },
-  collectionOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.2)',
   },
   collectionTitle: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+    fontSize: 13,
     textAlign: 'center',
-    zIndex: 1,
-    paddingHorizontal: 5,
   },
   // Promo
   promoContainer: {
@@ -315,6 +340,37 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 40,
     left: 20,
+  },
+  // Home Banner (Copied from Shop)
+  bannerContainer: {
+    backgroundColor: '#000',
+    marginHorizontal: 20,
+    marginBottom: 40, // Consistent spacing
+    padding: 20,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#E8A0BF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  bannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+  },
+  bannerTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  bannerSubtitle: {
+    color: '#E8A0BF',
+    fontSize: 14,
+    marginTop: 2,
   },
   promoTitle: {
     color: '#fff',

@@ -1,6 +1,6 @@
 import { ProductCard } from '@/components/ProductCard';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -55,21 +55,15 @@ export default function CollectionScreen() {
     const products = collection.products.edges.map((edge: any) => edge.node);
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['left', 'right']}>
             <Stack.Screen options={{
                 headerShown: true,
                 title: collection.title,
-                headerBackTitle: '', // Hides back title on iOS
+                headerBackTitle: ' ', // Force space to hide back title on next screen
                 headerTintColor: '#000',
                 headerTransparent: false,
-                headerLeft: () => (
-                    <TouchableOpacity
-                        onPress={() => router.back()}
-                        style={styles.backButton}
-                    >
-                        <IconSymbol name="chevron.left" size={28} color="#000" />
-                    </TouchableOpacity>
-                ),
+                headerShadowVisible: false, // Cleaner look
+                headerStyle: { backgroundColor: '#fff' },
                 headerRight: () => (
                     <TouchableOpacity
                         onPress={toggleViewMode}
@@ -116,21 +110,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#fff',
     },
-    backButton: {
-        marginLeft: 10,
+    headerButton: {
         width: 40,
         height: 40,
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 12,
-        backgroundColor: 'transparent',
-    },
-    headerButton: {
-        paddingRight: 10,
     },
     listContent: {
-        paddingHorizontal: 20, // Standardized 20px padding (was 15)
-        paddingTop: 15,        // Explicit top padding for spacing from header
+        paddingHorizontal: 20,
+        paddingTop: 10,        // Reduced top padding
         paddingBottom: 20,
     },
     columnWrapper: {

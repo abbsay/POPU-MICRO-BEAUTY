@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { Dimensions, FlatList, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getProducts, searchProducts } from '../../api/shopify';
+import { getPopularProducts, searchProducts } from '../../api/shopify';
 
 const { width } = Dimensions.get('window');
 // Standardize padding and spacing
@@ -49,7 +49,7 @@ export default function SearchScreen() {
 
     const loadPopularProducts = async () => {
         try {
-            const data = await getProducts(4); // Fetch 4 popular products
+            const data = await getPopularProducts(4); // Fetch 4 best selling products
             setPopularProducts(data);
         } catch (e) {
             console.error(e);
@@ -94,18 +94,12 @@ export default function SearchScreen() {
         setHasSearched(false);
     };
 
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-
-    const toggleViewMode = () => {
-        setViewMode(prev => prev === 'grid' ? 'list' : 'grid');
-    };
-
     const renderItem = ({ item, index }: { item: any; index: number }) => (
         <Animated.View
             entering={FadeInDown.delay(index * 50).springify()}
             layout={Layout.springify()}
         >
-            <ProductCard product={item} viewMode={viewMode} origin="search" />
+            <ProductCard product={item} viewMode="grid" origin="search" />
         </Animated.View>
     );
 
@@ -116,13 +110,7 @@ export default function SearchScreen() {
             <View style={styles.header}>
                 <View style={{ width: 40 }} />
                 <Text style={styles.title}>SEARCH</Text>
-                <TouchableOpacity onPress={toggleViewMode} style={styles.headerButton}>
-                    <IconSymbol
-                        name={viewMode === 'grid' ? 'list.bullet' : 'square.grid.2x2'}
-                        size={22}
-                        color="#000"
-                    />
-                </TouchableOpacity>
+                <View style={{ width: 40 }} />
             </View>
 
             <View style={styles.searchContainer}>
@@ -199,11 +187,11 @@ export default function SearchScreen() {
                         </ScrollView>
                     ) : (
                         <FlatList
-                            key={viewMode}
+                            key="grid"
                             data={results}
                             keyExtractor={(item) => item.id}
-                            numColumns={viewMode === 'grid' ? 2 : 1}
-                            columnWrapperStyle={viewMode === 'grid' ? styles.columnWrapper : undefined}
+                            numColumns={2}
+                            columnWrapperStyle={styles.columnWrapper}
                             contentContainerStyle={styles.listContent}
                             ListEmptyComponent={
                                 <View style={styles.emptyState}>

@@ -19,6 +19,8 @@ import Animated, {
     runOnJS,
     useAnimatedStyle,
     useSharedValue,
+    withSequence,
+    withSpring,
     withTiming
 } from 'react-native-reanimated';
 import RenderHtml from 'react-native-render-html';
@@ -31,7 +33,7 @@ import { useWishlistStore } from '../../store/wishlistStore';
 // ...
 
 export default function ProductDetailScreen() {
-    const { id } = useLocalSearchParams();
+    const { id, origin } = useLocalSearchParams();
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [addStatus, setAddStatus] = useState<'idle' | 'adding' | 'added'>('idle');
@@ -48,6 +50,13 @@ export default function ProductDetailScreen() {
     const flyY = useSharedValue(0);
     const flyScale = useSharedValue(1);
     const flyOpacity = useSharedValue(1);
+    const buttonScale = useSharedValue(1);
+
+    const buttonAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: buttonScale.value }]
+        };
+    });
 
     const isWishlisted = product ? isInWishlist(product.id) : false;
 
@@ -99,6 +108,12 @@ export default function ProductDetailScreen() {
         if (currentVariant && addStatus === 'idle') {
             // 1. Success Haptic
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // Button Spring
+            buttonScale.value = withSequence(
+                withTiming(0.9, { duration: 100 }),
+                withSpring(1, { damping: 10, stiffness: 100 })
+            );
 
             // 2. Start Animation
             if (product.images.edges[0]?.node.url && cartIconRef.current) {
@@ -189,23 +204,9 @@ export default function ProductDetailScreen() {
                 title: '',
                 headerTransparent: true,
                 headerTintColor: '#000',
-                headerBackTitleVisible: false,
-                headerLeft: () => (
-                    <TouchableOpacity
-                        onPress={() => router.back()}
-                        style={{
-                            marginLeft: 10,
-                            width: 40,
-                            height: 40,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            borderRadius: 12,
-                            backgroundColor: 'transparent',
-                        }}
-                    >
-                        <IconSymbol name="chevron.left" size={28} color="#000" />
-                    </TouchableOpacity>
-                ),
+                headerBackTitle: '', // Keep clean title
+                headerBackTitleVisible: false, // Explicitly hide text
+                // Custom headerLeft removed to use system default
                 headerRight: () => null // Removed icons from header as they are now in bottom bar
             }} />
             <ScrollView contentContainerStyle={styles.scrollContent}
@@ -331,24 +332,27 @@ export default function ProductDetailScreen() {
                 </View>
 
                 {/* 3. Add to Cart */}
-                <TouchableOpacity
-                    style={[
-                        styles.addToCartButtonFixed,
-                        (!isAvailable) && styles.disabledButton,
-                        addStatus === 'added' && { backgroundColor: '#4CAF50' },
-                        addStatus === 'adding' && { opacity: 0.7 }
-                    ]}
-                    onPress={handleAddToCart}
-                    disabled={addStatus !== 'idle' || !isAvailable}
-                >
-                    {addStatus === 'adding' ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={styles.addToCartTextFixed}>
-                            {addStatus === 'added' ? 'Added' : isAvailable ? 'Add to Cart' : 'Sold Out'}
-                        </Text>
-                    )}
-                </TouchableOpacity>
+                <Animated.View style={[{ flex: 1 }, buttonAnimatedStyle]}>
+                    <TouchableOpacity
+                        style={[
+                            styles.addToCartButtonFixed,
+                            (!isAvailable) && styles.disabledButton,
+                            addStatus === 'added' && { backgroundColor: '#4CAF50' },
+                            addStatus === 'adding' && { opacity: 0.7 }
+                        ]}
+                        onPress={handleAddToCart}
+                        disabled={addStatus !== 'idle' || !isAvailable}
+                        activeOpacity={0.9}
+                    >
+                        {addStatus === 'adding' ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.addToCartTextFixed}>
+                                {addStatus === 'added' ? 'Added' : isAvailable ? 'Add to Cart' : 'Sold Out'}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+                </Animated.View>
 
                 {/* 4. Cart */}
                 <Link href="/cart" asChild>
@@ -439,6 +443,20 @@ function getVariantData(product: any, selectedOptions: Record<string, string>) {
 }
 
 const styles = StyleSheet.create({
+    backButton: {
+        marginLeft: 0,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 20,
+        backgroundColor: '#fff',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
     container: {
         flex: 1,
         backgroundColor: '#fff',

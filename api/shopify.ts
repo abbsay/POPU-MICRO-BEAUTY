@@ -154,7 +154,11 @@ export async function createCart(lines: any[] = []) {
     }
   `;
   const response = await shopifyFetch(query, { lines });
-  return response.cartCreate.cart;
+  if (response.cartCreate?.userErrors?.length > 0) {
+    console.error("createCart errors:", response.cartCreate.userErrors);
+    throw new Error(response.cartCreate.userErrors[0].message);
+  }
+  return response.cartCreate?.cart;
 }
 
 export async function addToCart(cartId: string, lines: any[]) {
@@ -198,11 +202,19 @@ export async function addToCart(cartId: string, lines: any[]) {
             }
           }
         }
+        userErrors {
+            field
+            message
+        }
       }
     }
   `;
   const response = await shopifyFetch(query, { cartId, lines });
-  return response.cartLinesAdd.cart;
+  if (response.cartLinesAdd?.userErrors?.length > 0) {
+    console.error("addToCart errors:", response.cartLinesAdd.userErrors);
+    throw new Error(response.cartLinesAdd.userErrors[0].message);
+  }
+  return response.cartLinesAdd?.cart;
 }
 
 export async function cartBuyerIdentityUpdate(cartId: string, customerAccessToken: string) {
@@ -601,4 +613,118 @@ export async function customerUpdate(accessToken: string, customer: any) {
   `;
   const response = await shopifyFetch(query, { customerAccessToken: accessToken, customer });
   return response.customerUpdate;
+}
+
+export async function getShopInfo() {
+  const query = `
+    query getShopInfo {
+      shop {
+        name
+        primaryDomain {
+          url
+          host
+        }
+        privacyPolicy {
+          url
+          title
+        }
+        refundPolicy {
+          url
+          title
+        }
+        termsOfService {
+            url
+            title
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query);
+  return response.shop;
+}
+
+export async function getPageByHandle(handle: string) {
+  const query = `
+    query getPageByHandle($handle: String!) {
+      pageByHandle(handle: $handle) {
+        id
+        title
+        body
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { handle });
+  return response.pageByHandle;
+}
+
+export async function getPopularProducts(first = 4) {
+  const query = `
+    query getPopularProducts($first: Int!) {
+      products(first: $first, sortKey: BEST_SELLING) {
+        edges {
+          node {
+            id
+            title
+            description
+            images(first: 1) {
+              edges {
+                node {
+                  url
+                }
+              }
+            }
+            priceRange {
+              minVariantPrice {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { first });
+  return response.products.edges.map((edge: any) => edge.node);
+}
+
+export async function getMainPromotionProducts(first = 4, sortKey = 'BEST_SELLING', reverse = false) {
+  const handles = [
+    "popu-pmu-machines",
+    "popu-pmu-cartridges",
+    "permanent-makeup-practice-skin",
+    "vernus-microneedle-cartridges",
+    "pmu-machine-kit",
+    "smp-cartridges-needles"
+  ];
+  const queryStr = handles.map(h => `collection:${h}`).join(' OR ');
+
+  const query = `
+    query getPromotedProducts($first: Int!, $query: String!, $sortKey: ProductSortKeys!, $reverse: Boolean!) {
+      products(first: $first, query: $query, sortKey: $sortKey, reverse: $reverse) {
+        edges {
+          node {
+            id
+            title
+            description
+            images(first: 1) {
+              edges {
+                node {
+                  url
+                }
+              }
+            }
+            priceRange {
+              minVariantPrice {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { first, query: queryStr, sortKey, reverse });
+  return response.products.edges.map((edge: any) => edge.node);
 }

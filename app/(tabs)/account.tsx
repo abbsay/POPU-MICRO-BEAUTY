@@ -1,23 +1,86 @@
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Stack, router } from 'expo-router';
-import { useEffect } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import { useEffect, useState } from 'react';
+import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getShopInfo } from '../../api/shopify';
 import { useAuthStore } from '../../store/authStore';
 
 export default function AccountScreen() {
     const { customer, logout, customerAccessToken, fetchCustomer } = useAuthStore();
+    const [shopInfo, setShopInfo] = useState<any>(null);
 
     useEffect(() => {
         if (customerAccessToken) {
             fetchCustomer();
         }
+        // Fetch dynamic shop info
+        getShopInfo().then(info => {
+            setShopInfo(info);
+        }).catch(err => console.log("Failed to fetch shop info", err));
     }, [customerAccessToken]);
 
     const handleLogout = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         logout();
+    };
+
+    const handleContactUs = async () => {
+        const mailUrl = 'mailto:support@popumicrobeauty.com';
+        try {
+            const canOpen = await Linking.canOpenURL(mailUrl);
+            if (canOpen) {
+                await Linking.openURL(mailUrl);
+            } else {
+                // Fallback to web contact page
+                const baseUrl = shopInfo?.primaryDomain?.url || 'https://popumicrobeauty.com';
+                await WebBrowser.openBrowserAsync(`${baseUrl}/pages/contact`);
+            }
+        } catch (e) {
+            // Final fallback if everything fails
+            const baseUrl = shopInfo?.primaryDomain?.url || 'https://popumicrobeauty.com';
+            await WebBrowser.openBrowserAsync(`${baseUrl}/pages/contact`);
+        }
+    };
+
+    const handleHelpCenter = async () => {
+        // Use dynamic domain if available, else fallback
+        const baseUrl = shopInfo?.primaryDomain?.url || 'https://popumicrobeauty.com';
+        await WebBrowser.openBrowserAsync(`${baseUrl}/pages/contact`);
+    };
+
+    const handlePrivacy = async () => {
+        // Use dynamic policy URL key if available
+        const url = shopInfo?.privacyPolicy?.url || 'https://popumicrobeauty.com/policies/privacy-policy';
+        await WebBrowser.openBrowserAsync(url);
+    };
+
+    const handleNotifications = () => {
+        Linking.openSettings();
+    };
+
+    const handleDeleteAccount = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        Alert.alert(
+            "Delete Account",
+            "Are you sure you want to delete your account? All your data will be permanently removed. This action cannot be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () => {
+                        Alert.alert(
+                            "Account Deletion Requested",
+                            "Your account deletion request has been submitted and will be processed within 24 hours.",
+                            [{ text: "OK", onPress: () => handleLogout() }]
+                        );
+                    }
+                }
+            ]
+        );
     };
 
     if (!customer) {
@@ -48,13 +111,12 @@ export default function AccountScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
-            <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
                 {/* Header / Profile Section */}
                 <View style={styles.loggedInHeader}>
-                    <Image
-                        source={require('../../assets/images/popu_logo.png')}
-                        style={styles.headerLogo}
-                    />
+                    <View style={styles.headerTop}>
+                        <Text style={styles.pageTitle}>My Account</Text>
+                    </View>
 
                     <TouchableOpacity onPress={() => router.push('/account/profile')} style={styles.profileCard}>
                         <View style={styles.avatarContainer}>
@@ -63,59 +125,124 @@ export default function AccountScreen() {
                                 style={styles.avatar}
                             />
                             <View style={styles.editBadge}>
-                                <IconSymbol name="pencil" size={12} color="#fff" />
+                                <MaterialCommunityIcons name="pencil" size={12} color="#fff" />
                             </View>
                         </View>
                         <View style={styles.profileInfo}>
                             <Text style={styles.welcomeText}>{customer.firstName} {customer.lastName}</Text>
                             <Text style={styles.emailText}>{customer.email}</Text>
                         </View>
-                        <IconSymbol name="chevron.right" size={20} color="#ccc" style={{ marginLeft: 'auto' }} />
+                        <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
+                    </TouchableOpacity>
+
+                    {/* Loyalty Card (Mock) */}
+                    {/* Design Banner */}
+                    <TouchableOpacity onPress={() => router.push('/design')} style={styles.designBanner}>
+                        <View style={styles.designContent}>
+                            <MaterialCommunityIcons name="face-woman-shimmer" size={28} color="#fff" />
+                            <View>
+                                <Text style={styles.designTitle}>Design Your Eyebrows</Text>
+                                <Text style={styles.designSubtitle}>Create your perfect look</Text>
+                            </View>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={24} color="#fff" />
                     </TouchableOpacity>
                 </View>
 
-                {/* My Account Menu */}
+                {/* Menu Sections */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionHeader}>MY ACCOUNT</Text>
+                    <Text style={styles.sectionHeader}>SHOPPING</Text>
                     <View style={styles.menuCard}>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/account/orders')}>
-                            <View style={styles.iconBox}>
-                                <IconSymbol name="bag" size={20} color="#000" />
-                            </View>
-                            <Text style={styles.menuText}>My Orders</Text>
-                            <IconSymbol name="chevron.right" size={16} color="#ccc" />
-                        </TouchableOpacity>
+                        <MenuItem
+                            icon="shopping-outline"
+                            label="My Orders"
+                            onPress={() => router.push('/account/orders')}
+                        />
                         <View style={styles.separator} />
-                        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/account/addresses')}>
-                            <View style={styles.iconBox}>
-                                <IconSymbol name="location" size={20} color="#000" />
-                            </View>
-                            <Text style={styles.menuText}>Addresses</Text>
-                            <IconSymbol name="chevron.right" size={16} color="#ccc" />
-                        </TouchableOpacity>
+                        <MenuItem
+                            icon="heart-outline"
+                            label="Wishlist"
+                            onPress={() => router.push('/account/wishlist')}
+                        />
                         <View style={styles.separator} />
-                        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/account/wishlist')}>
-                            <View style={styles.iconBox}>
-                                <IconSymbol name="heart" size={20} color="#000" />
-                            </View>
-                            <Text style={styles.menuText}>Wishlist</Text>
-                            <IconSymbol name="chevron.right" size={16} color="#ccc" />
-                        </TouchableOpacity>
+                        <MenuItem
+                            icon="map-marker-outline"
+                            label="Addresses"
+                            onPress={() => router.push('/account/addresses')}
+                        />
+                    </View>
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionHeader}>SUPPORT</Text>
+                    <View style={styles.menuCard}>
+                        <MenuItem
+                            icon="headset"
+                            label="Contact Us"
+                            onPress={handleContactUs}
+                        />
+                        <View style={styles.separator} />
+                        <MenuItem
+                            icon="information-outline"
+                            label="About Us"
+                            onPress={() => router.push('/account/about')}
+                        />
+                    </View>
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionHeader}>SETTINGS</Text>
+                    <View style={styles.menuCard}>
+                        <MenuItem
+                            icon="bell-outline"
+                            label="Notifications"
+                            onPress={handleNotifications}
+                        />
+                        <View style={styles.separator} />
+                        <MenuItem
+                            icon="shield-check-outline"
+                            label="Privacy & Security"
+                            onPress={handlePrivacy}
+                        />
+                        <View style={styles.separator} />
+                        <MenuItem
+                            icon="account-remove-outline"
+                            label="Delete Account"
+                            onPress={handleDeleteAccount}
+                            isDestructive={true}
+                        />
                     </View>
                 </View>
 
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                     <Text style={styles.logoutText}>Log Out</Text>
                 </TouchableOpacity>
+
+                <View style={styles.versionInfo}>
+                    <Text style={styles.versionText}>Version 1.0.3 (Build 3)</Text>
+                </View>
             </ScrollView>
         </SafeAreaView>
+    );
+}
+
+// Helper Component for Menu Items
+function MenuItem({ icon, label, onPress, isDestructive = false }: { icon: any, label: string, onPress: () => void, isDestructive?: boolean }) {
+    return (
+        <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+            <View style={[styles.iconBox, isDestructive && { backgroundColor: '#FFF0F0' }]}>
+                <MaterialCommunityIcons name={icon} size={20} color={isDestructive ? '#FF3B30' : '#000'} />
+            </View>
+            <Text style={[styles.menuText, isDestructive && { color: '#FF3B30' }]}>{label}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#ccc" />
+        </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9F9F9', // Light gray background for better card contrast
+        backgroundColor: '#F9F9F9',
     },
     // Guest Styles
     guestHeader: {
@@ -127,13 +254,6 @@ const styles = StyleSheet.create({
         height: 60,
         resizeMode: 'contain',
         marginBottom: 10,
-    },
-    headerLogo: {
-        width: 120,
-        height: 40,
-        resizeMode: 'contain',
-        marginBottom: 20,
-        alignSelf: 'center',
     },
     subText: {
         color: '#666',
@@ -183,12 +303,24 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
         paddingHorizontal: 20,
     },
+    headerTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    pageTitle: {
+        fontSize: 28,
+        fontWeight: '900',
+        color: '#000',
+    },
     profileCard: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#fff',
         padding: 20,
         borderRadius: 16,
+        marginBottom: 20,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -197,11 +329,13 @@ const styles = StyleSheet.create({
     },
     avatarContainer: {
         marginRight: 15,
+        position: 'relative',
     },
     avatar: {
         width: 60,
         height: 60,
         borderRadius: 30,
+        backgroundColor: '#eee',
     },
     editBadge: {
         position: 'absolute',
@@ -230,23 +364,55 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
 
+    // Design Banner
+    designBanner: {
+        backgroundColor: '#000',
+        borderRadius: 16,
+        padding: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        shadowColor: "#E8A0BF",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    designContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15,
+    },
+    designTitle: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+        marginBottom: 2,
+    },
+    designSubtitle: {
+        color: '#E8A0BF',
+        fontSize: 13,
+    },
+
     // Menu
     section: {
         marginTop: 10,
         paddingHorizontal: 20,
+        marginBottom: 10, // Added spacing between sections
     },
     sectionHeader: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: 'bold',
-        color: '#666',
-        marginBottom: 10,
+        color: '#888',
+        marginBottom: 8,
         marginLeft: 4,
-        letterSpacing: 0.5,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
     menuCard: {
         backgroundColor: '#fff',
         borderRadius: 16,
-        paddingHorizontal: 10,
+        overflow: 'hidden', // Ensure corners clip separators
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -257,7 +423,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 16,
-        paddingHorizontal: 10,
+        paddingHorizontal: 16,
+        backgroundColor: '#fff',
     },
     iconBox: {
         width: 36,
@@ -277,19 +444,28 @@ const styles = StyleSheet.create({
     separator: {
         height: 1,
         backgroundColor: '#F0F0F0',
-        marginLeft: 61, // Align with text
+        marginLeft: 67, // Align with text (16+36+15)
     },
 
     // Logout
     logoutButton: {
         marginHorizontal: 20,
-        marginTop: 30,
+        marginTop: 20,
         padding: 16,
         alignItems: 'center',
+        marginBottom: 20,
     },
     logoutText: {
         color: '#FF3B30', // System red
         fontSize: 16,
         fontWeight: '600',
+    },
+    versionInfo: {
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    versionText: {
+        color: '#ccc',
+        fontSize: 12,
     },
 });

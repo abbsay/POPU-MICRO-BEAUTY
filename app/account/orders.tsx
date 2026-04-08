@@ -43,7 +43,7 @@ export default function OrdersScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <Stack.Screen options={{ title: 'My Orders', headerBackTitleVisible: false }} />
+            <Stack.Screen options={{ title: 'My Orders', headerBackTitle: '' }} />
             <FlatList
                 data={orders}
                 renderItem={renderOrder}
@@ -51,7 +51,7 @@ export default function OrdersScreen() {
                 contentContainerStyle={styles.listContent}
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
-                        <Text style={styles.emptyText}>You haven't placed any orders yet.</Text>
+                        <Text style={styles.emptyText}>You haven&apos;t placed any orders yet.</Text>
                     </View>
                 }
             />

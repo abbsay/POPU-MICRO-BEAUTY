@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ShopifyCheckoutSheet } from '@shopify/checkout-sheet-kit';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { addToCart, cartBuyerIdentityUpdate, createCart, getCart } from '../api/shopify';
@@ -38,10 +37,6 @@ export const useCartStore = create<CartState>()(
                                 checkoutUrl: cart.checkoutUrl,
                                 loading: false,
                             });
-                            if (cart.checkoutUrl) {
-                                // @ts-ignore
-                                ShopifyCheckoutSheet.preload(cart.checkoutUrl);
-                            }
                         } else {
                             set({ cartId: null, lines: [], checkoutUrl: null, loading: false }); // Cart expired
                         }
@@ -54,15 +49,26 @@ export const useCartStore = create<CartState>()(
 
             addItem: async (variantId: string, quantity = 1) => {
                 set({ loading: true, error: null });
-                const { cartId } = get();
+                let { cartId } = get();
                 const lines = [{ merchandiseId: variantId, quantity }];
 
                 try {
                     let cart;
                     if (cartId) {
-                        cart = await addToCart(cartId, lines);
-                    } else {
+                        try {
+                            cart = await addToCart(cartId, lines);
+                        } catch (e) {
+                            console.log("Add to cart failed, trying to create new cart...", e);
+                            cartId = null; // Reset invalid cartId
+                        }
+                    }
+
+                    if (!cartId || !cart) {
                         cart = await createCart(lines);
+                    }
+
+                    if (!cart) {
+                        throw new Error("Failed to create or update cart");
                     }
 
                     set({
@@ -71,14 +77,9 @@ export const useCartStore = create<CartState>()(
                         checkoutUrl: cart.checkoutUrl,
                         loading: false,
                     });
-
-                    if (cart.checkoutUrl) {
-                        // @ts-ignore
-                        ShopifyCheckoutSheet.preload(cart.checkoutUrl);
-                    }
-                } catch (error) {
+                } catch (error: any) {
                     console.error('Failed to add to cart:', error);
-                    set({ error: 'Failed to add item', loading: false });
+                    set({ error: error.message || 'Failed to add item', loading: false });
                 }
             },
 
@@ -89,10 +90,6 @@ export const useCartStore = create<CartState>()(
                         const cart = await cartBuyerIdentityUpdate(cartId, accessToken);
                         if (cart) {
                             set({ checkoutUrl: cart.checkoutUrl });
-                            if (cart.checkoutUrl) {
-                                // @ts-ignore
-                                ShopifyCheckoutSheet.preload(cart.checkoutUrl);
-                            }
                             return cart.checkoutUrl;
                         }
                     } catch (error) {

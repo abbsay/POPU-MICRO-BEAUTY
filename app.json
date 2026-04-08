@@ -2,7 +2,7 @@
   "expo": {
     "name": "Popu Micro Beauty",
     "slug": "shopify-popu-app",
-    "version": "0.2.0",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/popu_logo.png",
     "scheme": "shopifypopuapp",
@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.raredoge.shopify-popu-app"
+      "bundleIdentifier": "com.raredoge.shopify-popu-app",
+      "buildNumber": "5",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -51,11 +55,38 @@
             "deploymentTarget": "15.1"
           }
         }
+      ],
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Popu Micro Beauty requires access to your photo library so you can choose existing photos of yourself to preview custom eyebrow and cosmetic designs.",
+          "cameraPermission": "Popu Micro Beauty requires camera access so you can take photos of yourself to preview custom eyebrow and cosmetic designs."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Popu Micro Beauty requires access to your photo library so you can choose existing photos to preview custom eyebrow designs.",
+          "savePhotosPermission": "Popu Micro Beauty requires permission to save your customized eyebrow design previews to your photo library."
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f156a1c0-c7d5-482b-be04-f61c2d596e54"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f156a1c0-c7d5-482b-be04-f61c2d596e54"
     }
   }
 }
