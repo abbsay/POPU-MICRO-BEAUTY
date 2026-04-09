@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getCollections, getProducts, searchProducts, getMainPromotionProducts } from '../../api/shopify';
 
@@ -17,6 +18,7 @@ export default function HomeScreen() {
   const [products, setProducts] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
   const [heroItems, setHeroItems] = useState<any[]>([]); // Dedicated state for hero
+  const [heroActiveIndex, setHeroActiveIndex] = useState(0); // Track active slide
   const [newArrivals, setNewArrivals] = useState<any[]>([]);
   const [bestSellers, setBestSellers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,14 +113,23 @@ export default function HomeScreen() {
             <>
               {/* Hero Section */}
               {/* Hero Section - Dual Carousel */}
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                style={styles.heroContainer}
-                contentContainerStyle={{ width: width * 2 }} // Fixed 2 slides
-              >
-                {heroItems.map((product, index) => {
+              <View style={styles.heroWrapper}>
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.heroContainer}
+                  contentContainerStyle={{ width: width * (heroItems.length || 2) }}
+                  scrollEventThrottle={16}
+                  onScroll={(e) => {
+                    const x = e.nativeEvent.contentOffset.x;
+                    const active = Math.round(x / width);
+                    if (active !== heroActiveIndex) {
+                      setHeroActiveIndex(active);
+                    }
+                  }}
+                >
+                  {heroItems.map((product, index) => {
                   // Customize title/tag based on the product (index 0 is Clover, 1 is Diva)
                   const isClover = index === 0;
                   const customTitle = isClover ? "POPU PMU CARTRIDGES" : "POPU PMU MACHINES";
@@ -135,7 +146,10 @@ export default function HomeScreen() {
                         ) : (
                           <View style={[styles.heroImage, { backgroundColor: '#ddd' }]} />
                         )}
-                        <View style={styles.heroOverlay}>
+                        <LinearGradient 
+                          colors={['transparent', 'rgba(0,0,0,0.8)']} 
+                          style={styles.heroOverlay}
+                        >
                           <Text style={styles.heroTag}>{customTag}</Text>
                           <Text style={styles.heroTitle} numberOfLines={2}>
                             {customTitle}
@@ -143,12 +157,18 @@ export default function HomeScreen() {
                           <View style={styles.shopNowBtn}>
                             <Text style={styles.shopNowText}>SHOP NOW</Text>
                           </View>
-                        </View>
+                        </LinearGradient>
                       </TouchableOpacity>
                     </Link>
                   );
                 })}
-              </ScrollView>
+                </ScrollView>
+                <View style={styles.paginationContainer}>
+                  {heroItems.map((_, i) => (
+                    <View key={i} style={[styles.paginationDot, i === heroActiveIndex ? styles.paginationDotActive : null]} />
+                  ))}
+                </View>
+              </View>
 
               {/* Collections Scroll */}
               <View style={styles.collectionsSection}>
@@ -244,9 +264,12 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   // Hero
+  heroWrapper: {
+    position: 'relative',
+    marginBottom: 40,
+  },
   heroContainer: {
     height: 550,
-    marginBottom: 40,
   },
   heroSlide: {
     width: width,
@@ -263,28 +286,49 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    top: 0,
-    justifyContent: 'center',
+    height: '50%',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    paddingBottom: 40,
   },
   heroTag: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
     letterSpacing: 2,
-    marginBottom: 10,
+    marginBottom: 8,
     textTransform: 'uppercase',
   },
   heroTitle: {
     color: '#fff',
-    fontSize: 42,
+    fontSize: 28,
     fontWeight: '900',
-    marginBottom: 20,
+    marginBottom: 15,
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  paginationContainer: {
+    position: 'absolute',
+    bottom: 15,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  paginationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    marginHorizontal: 4,
+  },
+  paginationDotActive: {
+    backgroundColor: '#fff',
+    width: 20,
   },
   shopNowBtn: {
     backgroundColor: '#fff',

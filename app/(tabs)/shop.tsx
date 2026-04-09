@@ -17,7 +17,11 @@ export default function ShopScreen() {
         async function loadCollections() {
             try {
                 const data = await getCollections();
-                setCollections(data);
+                const filteredData = data.filter((item: any) => {
+                    const title = item.title?.toLowerCase() || '';
+                    return !title.includes('omni cartridges') && !title.includes('microblading pen');
+                });
+                setCollections(filteredData);
             } catch (error) {
                 console.error(error);
             } finally {

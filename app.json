@@ -2,7 +2,7 @@
   "expo": {
     "name": "Popu Micro Beauty",
     "slug": "shopify-popu-app",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/popu_logo.png",
     "scheme": "shopifypopuapp",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.raredoge.shopify-popu-app",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
