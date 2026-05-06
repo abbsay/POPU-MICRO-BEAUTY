@@ -76,11 +76,11 @@ export default function HomeScreen() {
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.header}>
           <Text style={styles.brandTitle}>POPU</Text>
-          <Link href="/design" asChild>
+          {/* <Link href="/design" asChild>
             <TouchableOpacity style={styles.cartBtn}>
               <MaterialCommunityIcons name="face-woman-shimmer" size={24} color="#000" />
             </TouchableOpacity>
-          </Link>
+          </Link> */}
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -197,7 +197,7 @@ export default function HomeScreen() {
               {/* Promo Banner */}
               {/* Promo Banner */}
               {/* Design Your Eyebrows Banner */}
-              <Link href="/design" asChild>
+              {/* <Link href="/design" asChild>
                 <TouchableOpacity style={styles.bannerContainer}>
                   <View style={styles.bannerContent}>
                     <MaterialCommunityIcons name="face-woman-shimmer" size={32} color="#fff" />
@@ -208,7 +208,7 @@ export default function HomeScreen() {
                   </View>
                   <MaterialCommunityIcons name="arrow-right" size={24} color="#fff" />
                 </TouchableOpacity>
-              </Link>
+              </Link> */}
 
               <Text style={styles.sectionHeader}>BEST SELLERS</Text>
               <View style={styles.grid}>

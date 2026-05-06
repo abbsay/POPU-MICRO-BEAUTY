@@ -62,7 +62,7 @@ export default function ShopScreen() {
                 <Text style={styles.subtitle}>Curated just for you</Text>
             </Animated.View>
 
-            <Link href="/design" asChild>
+            {/* <Link href="/design" asChild>
                 <TouchableOpacity style={styles.bannerContainer}>
                     <View style={styles.bannerContent}>
                         <MaterialCommunityIcons name="face-woman-shimmer" size={32} color="#fff" />
@@ -73,7 +73,7 @@ export default function ShopScreen() {
                     </View>
                     <MaterialCommunityIcons name="arrow-right" size={24} color="#fff" />
                 </TouchableOpacity>
-            </Link>
+            </Link> */}
 
             {loading ? (
                 <View style={styles.loadingContainer}>

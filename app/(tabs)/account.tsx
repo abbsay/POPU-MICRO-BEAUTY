@@ -137,7 +137,7 @@ export default function AccountScreen() {
 
                     {/* Loyalty Card (Mock) */}
                     {/* Design Banner */}
-                    <TouchableOpacity onPress={() => router.push('/design')} style={styles.designBanner}>
+                    {/* <TouchableOpacity onPress={() => router.push('/design')} style={styles.designBanner}>
                         <View style={styles.designContent}>
                             <MaterialCommunityIcons name="face-woman-shimmer" size={28} color="#fff" />
                             <View>
@@ -146,7 +146,7 @@ export default function AccountScreen() {
                             </View>
                         </View>
                         <MaterialCommunityIcons name="chevron-right" size={24} color="#fff" />
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                 </View>
 
                 {/* Menu Sections */}
@@ -219,7 +219,7 @@ export default function AccountScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.versionInfo}>
-                    <Text style={styles.versionText}>Version 1.0.3 (Build 3)</Text>
+                    <Text style={styles.versionText}>Version 1.1.0 (Build 7)</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>
