@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { addToCart, cartBuyerIdentityUpdate, createCart, getCart } from '../api/shopify';
+import { addToCart, cartBuyerIdentityUpdate, createCart, getCart, cartLinesRemove, cartLinesUpdate } from '../api/shopify';
 
 interface CartState {
     cartId: string | null;
@@ -12,6 +12,8 @@ interface CartState {
 
     initializeCart: () => Promise<void>;
     addItem: (variantId: string, quantity?: number) => Promise<void>;
+    removeItem: (lineId: string) => Promise<void>;
+    updateItemQuantity: (lineId: string, quantity: number) => Promise<void>;
     resetCart: () => void;
     associateCustomer: (accessToken: string) => Promise<string | null>;
 }
@@ -97,6 +99,51 @@ export const useCartStore = create<CartState>()(
                     }
                 }
                 return null;
+            },
+
+            removeItem: async (lineId: string) => {
+                const { cartId } = get();
+                if (!cartId) return;
+
+                set({ loading: true, error: null });
+                try {
+                    const cart = await cartLinesRemove(cartId, [lineId]);
+                    if (cart) {
+                        set({
+                            lines: cart.lines.edges.map((e: any) => e.node),
+                            checkoutUrl: cart.checkoutUrl,
+                            loading: false,
+                        });
+                    }
+                } catch (error: any) {
+                    console.error('Failed to remove item from cart:', error);
+                    set({ error: error.message || 'Failed to remove item', loading: false });
+                }
+            },
+
+            updateItemQuantity: async (lineId: string, quantity: number) => {
+                const { cartId } = get();
+                if (!cartId) return;
+
+                if (quantity <= 0) {
+                    await get().removeItem(lineId);
+                    return;
+                }
+
+                set({ loading: true, error: null });
+                try {
+                    const cart = await cartLinesUpdate(cartId, [{ id: lineId, quantity }]);
+                    if (cart) {
+                        set({
+                            lines: cart.lines.edges.map((e: any) => e.node),
+                            checkoutUrl: cart.checkoutUrl,
+                            loading: false,
+                        });
+                    }
+                } catch (error: any) {
+                    console.error('Failed to update cart quantity:', error);
+                    set({ error: error.message || 'Failed to update quantity', loading: false });
+                }
             },
 
             resetCart: () => set({ cartId: null, lines: [], checkoutUrl: null }),

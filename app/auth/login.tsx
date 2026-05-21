@@ -49,7 +49,7 @@ export default function LoginScreen() {
             if (response.customerUserErrors && response.customerUserErrors.length > 0) {
                 Alert.alert('Login Failed', response.customerUserErrors[0].message);
             } else if (response.customerAccessToken) {
-                await login(response.customerAccessToken.accessToken);
+                await login(response.customerAccessToken.accessToken, response.customerAccessToken.expiresAt);
                 await useCartStore.getState().associateCustomer(response.customerAccessToken.accessToken);
                 router.dismiss(); // Go back to account page
             }

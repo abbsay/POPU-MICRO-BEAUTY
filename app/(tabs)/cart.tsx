@@ -8,11 +8,12 @@ import { useCartStore } from '../../store/cartStore';
 import { useShopifyCheckoutSheet } from '@shopify/checkout-sheet-kit';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../../store/authStore';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 const FREE_SHIPPING_THRESHOLD = 100.00;
 
 export default function CartScreen() {
-    const { lines, checkoutUrl, loading, initializeCart, cartId } = useCartStore();
+    const { lines, checkoutUrl, loading, initializeCart, cartId, removeItem, updateItemQuantity } = useCartStore();
     const shopifyCheckout = useShopifyCheckoutSheet();
 
     useEffect(() => {
@@ -101,7 +102,42 @@ export default function CartScreen() {
                                 <Text style={styles.price}>
                                     {item.merchandise.price.currencyCode} {item.merchandise.price.amount}
                                 </Text>
-                                <Text style={styles.quantity}>Qty: {item.quantity}</Text>
+                                <View style={styles.actionsContainer}>
+                                    <View style={styles.quantitySelector}>
+                                        <TouchableOpacity 
+                                            style={styles.qtyBtn} 
+                                            onPress={() => {
+                                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                                updateItemQuantity(item.id, item.quantity - 1);
+                                            }}
+                                            disabled={loading}
+                                        >
+                                            <IconSymbol name="minus" size={14} color="#000" />
+                                        </TouchableOpacity>
+                                        <Text style={styles.qtyText}>{item.quantity}</Text>
+                                        <TouchableOpacity 
+                                            style={styles.qtyBtn} 
+                                            onPress={() => {
+                                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                                updateItemQuantity(item.id, item.quantity + 1);
+                                            }}
+                                            disabled={loading}
+                                        >
+                                            <IconSymbol name="plus" size={14} color="#000" />
+                                        </TouchableOpacity>
+                                    </View>
+                                    
+                                    <TouchableOpacity 
+                                        style={styles.deleteBtn} 
+                                        onPress={() => {
+                                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                            removeItem(item.id);
+                                        }}
+                                        disabled={loading}
+                                    >
+                                        <IconSymbol name="trash" size={18} color="#FF3B30" />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </View>
                     </Animated.View>
@@ -266,5 +302,38 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         letterSpacing: 1,
+    },
+    actionsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    quantitySelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#eee',
+        borderRadius: 6,
+        backgroundColor: '#f9f9f9',
+    },
+    qtyBtn: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    qtyText: {
+        fontSize: 14,
+        fontWeight: '600',
+        minWidth: 20,
+        textAlign: 'center',
+        paddingHorizontal: 4,
+    },
+    deleteBtn: {
+        padding: 6,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#FFF0F0',
+        borderRadius: 6,
     },
 });

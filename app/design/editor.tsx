@@ -14,6 +14,8 @@ export default function DesignEditorScreen() {
     const [image, setImage] = useState<string | null>(initialImage as string | null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [color, setColor] = useState('#4A3B2C');
+    const [flipped, setFlipped] = useState(false);
     const imageRef = useRef<View>(null);
 
     useEffect(() => {
@@ -124,7 +126,37 @@ export default function DesignEditorScreen() {
                     <View style={styles.editorContainer}>
                         <View style={styles.imageArea} ref={imageRef} collapsable={false}>
                             <Image source={{ uri: image }} style={styles.bgImage} resizeMode="contain" />
-                            <EyebrowOverlay />
+                            <EyebrowOverlay color={color} flipped={flipped} />
+                        </View>
+
+                        <View style={styles.settingsPanel}>
+                            <View style={styles.colorsRow}>
+                                <Text style={styles.panelLabel}>COLOR:</Text>
+                                {[
+                                    { name: 'Dark Brown', value: '#4A3B2C' },
+                                    { name: 'Light Brown', value: '#8B7355' },
+                                    { name: 'Charcoal', value: '#1C1C1C' },
+                                    { name: 'Taupe', value: '#C2B280' }
+                                ].map((c) => (
+                                    <TouchableOpacity
+                                        key={c.value}
+                                        style={[
+                                            styles.colorCircle,
+                                            { backgroundColor: c.value },
+                                            color === c.value && styles.activeColorCircle
+                                        ]}
+                                        onPress={() => setColor(c.value)}
+                                    />
+                                ))}
+                            </View>
+
+                            <TouchableOpacity
+                                style={[styles.flipButton, flipped && styles.activeFlipButton]}
+                                onPress={() => setFlipped(!flipped)}
+                            >
+                                <MaterialCommunityIcons name="swap-horizontal" size={16} color={flipped ? '#000' : '#fff'} />
+                                <Text style={[styles.flipButtonText, flipped && styles.activeFlipButtonText]}>Flip Brow</Text>
+                            </TouchableOpacity>
                         </View>
 
                         <View style={styles.toolbar}>
@@ -224,5 +256,56 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
         marginTop: 4,
+    },
+    settingsPanel: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#111',
+        paddingVertical: 15,
+        paddingHorizontal: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#222',
+    },
+    colorsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    panelLabel: {
+        color: '#999',
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginRight: 4,
+    },
+    colorCircle: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    activeColorCircle: {
+        borderColor: '#fff',
+    },
+    flipButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#222',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 20,
+        gap: 6,
+    },
+    activeFlipButton: {
+        backgroundColor: '#fff',
+    },
+    flipButtonText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    activeFlipButtonText: {
+        color: '#000',
     },
 });

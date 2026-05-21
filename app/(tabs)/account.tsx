@@ -7,6 +7,7 @@ import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getShopInfo } from '../../api/shopify';
 import { useAuthStore } from '../../store/authStore';
+import { useCartStore } from '../../store/cartStore';
 
 export default function AccountScreen() {
     const { customer, logout, customerAccessToken, fetchCustomer } = useAuthStore();
@@ -25,6 +26,7 @@ export default function AccountScreen() {
     const handleLogout = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         logout();
+        useCartStore.getState().resetCart();
     };
 
     const handleContactUs = async () => {
@@ -45,11 +47,6 @@ export default function AccountScreen() {
         }
     };
 
-    const handleHelpCenter = async () => {
-        // Use dynamic domain if available, else fallback
-        const baseUrl = shopInfo?.primaryDomain?.url || 'https://popumicrobeauty.com';
-        await WebBrowser.openBrowserAsync(`${baseUrl}/pages/contact`);
-    };
 
     const handlePrivacy = async () => {
         // Use dynamic policy URL key if available
@@ -136,17 +133,7 @@ export default function AccountScreen() {
                     </TouchableOpacity>
 
                     {/* Loyalty Card (Mock) */}
-                    {/* Design Banner */}
-                    {/* <TouchableOpacity onPress={() => router.push('/design')} style={styles.designBanner}>
-                        <View style={styles.designContent}>
-                            <MaterialCommunityIcons name="face-woman-shimmer" size={28} color="#fff" />
-                            <View>
-                                <Text style={styles.designTitle}>Design Your Eyebrows</Text>
-                                <Text style={styles.designSubtitle}>Create your perfect look</Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={24} color="#fff" />
-                    </TouchableOpacity> */}
+
                 </View>
 
                 {/* Menu Sections */}

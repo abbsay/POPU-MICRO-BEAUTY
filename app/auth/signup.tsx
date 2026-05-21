@@ -39,7 +39,7 @@ export default function SignupScreen() {
             // 2. Login immediately
             const tokenRes = await customerAccessTokenCreate(email, password);
             if (tokenRes.customerAccessToken) {
-                await login(tokenRes.customerAccessToken.accessToken);
+                await login(tokenRes.customerAccessToken.accessToken, tokenRes.customerAccessToken.expiresAt);
                 await useCartStore.getState().associateCustomer(tokenRes.customerAccessToken.accessToken);
                 router.dismissTo('/(tabs)/account');
             }

@@ -7,7 +7,7 @@ if (!SHOPIFY_STORE_DOMAIN || !STOREFRONT_ACCESS_TOKEN) {
 
 export async function shopifyFetch(query: string, variables = {}) {
   try {
-    const response = await fetch(`https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`, {
+    const response = await fetch(`https://${SHOPIFY_STORE_DOMAIN}/api/2024-07/graphql.json`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -115,7 +115,7 @@ export async function createCart(lines: any[] = []) {
         cart {
           id
           checkoutUrl
-          lines(first: 10) {
+          lines(first: 50) {
             edges {
               node {
                 id
@@ -167,7 +167,7 @@ export async function addToCart(cartId: string, lines: any[]) {
       cartLinesAdd(cartId: $cartId, lines: $lines) {
         cart {
           id
-          lines(first: 10) {
+          lines(first: 50) {
             edges {
               node {
                 id
@@ -217,6 +217,121 @@ export async function addToCart(cartId: string, lines: any[]) {
   return response.cartLinesAdd?.cart;
 }
 
+
+export async function cartLinesRemove(cartId: string, lineIds: string[]) {
+  const query = `
+    mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
+      cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
+        cart {
+          id
+          checkoutUrl
+          lines(first: 50) {
+            edges {
+              node {
+                id
+                quantity
+                merchandise {
+                  ... on ProductVariant {
+                    id
+                    title
+                    price {
+                      amount
+                      currencyCode
+                    }
+                    product {
+                      title
+                      images(first: 1) {
+                        edges {
+                          node {
+                            url
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          cost {
+            totalAmount {
+              amount
+              currencyCode
+            }
+          }
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { cartId, lineIds });
+  if (response.cartLinesRemove?.userErrors?.length > 0) {
+    console.error("cartLinesRemove errors:", response.cartLinesRemove.userErrors);
+    throw new Error(response.cartLinesRemove.userErrors[0].message);
+  }
+  return response.cartLinesRemove?.cart;
+}
+
+export async function cartLinesUpdate(cartId: string, lines: any[]) {
+  const query = `
+    mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+      cartLinesUpdate(cartId: $cartId, lines: $lines) {
+        cart {
+          id
+          checkoutUrl
+          lines(first: 50) {
+            edges {
+              node {
+                id
+                quantity
+                merchandise {
+                  ... on ProductVariant {
+                    id
+                    title
+                    price {
+                      amount
+                      currencyCode
+                    }
+                    product {
+                      title
+                      images(first: 1) {
+                        edges {
+                          node {
+                            url
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          cost {
+            totalAmount {
+              amount
+              currencyCode
+            }
+          }
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { cartId, lines });
+  if (response.cartLinesUpdate?.userErrors?.length > 0) {
+    console.error("cartLinesUpdate errors:", response.cartLinesUpdate.userErrors);
+    throw new Error(response.cartLinesUpdate.userErrors[0].message);
+  }
+  return response.cartLinesUpdate?.cart;
+}
+
 export async function cartBuyerIdentityUpdate(cartId: string, customerAccessToken: string) {
   const query = `
     mutation cartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
@@ -245,7 +360,7 @@ export async function getCart(cartId: string) {
       cart(id: $cartId) {
         id
         checkoutUrl
-        lines(first: 10) {
+        lines(first: 50) {
           edges {
             node {
               id

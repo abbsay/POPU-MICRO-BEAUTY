@@ -1,7 +1,7 @@
 
 import { Link, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View, RefreshControl } from 'react-native';
 import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
@@ -9,6 +9,18 @@ import { useAuthStore } from '../../store/authStore';
 export default function OrdersScreen() {
     const { customer, fetchCustomer } = useAuthStore();
     const [orders, setOrders] = useState<any[]>([]);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await fetchCustomer();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
         if (!customer) {
@@ -49,6 +61,9 @@ export default function OrdersScreen() {
                 renderItem={renderOrder}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#000"
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyText}>You haven&apos;t placed any orders yet.</Text>

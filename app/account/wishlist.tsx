@@ -1,13 +1,21 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import * as Haptics from 'expo-haptics';
 import { Link, Stack } from 'expo-router';
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View, RefreshControl } from 'react-native';
 import Animated, { FadeInUp, FadeOut, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWishlistStore } from '../../store/wishlistStore';
 
 export default function WishlistScreen() {
     const { items, removeItem } = useWishlistStore();
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        setTimeout(() => {
+            setRefreshing(false);
+        }, 800);
+    };
 
     const handleRemove = (id: string) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -44,6 +52,9 @@ export default function WishlistScreen() {
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#000"
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
                         <IconSymbol name="heart" size={60} color="#ddd" />

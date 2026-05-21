@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -12,24 +11,33 @@ const COLUMN_WIDTH = (width - 40) / 2;
 export default function ShopScreen() {
     const [collections, setCollections] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const loadCollections = async (showSkeleton = true) => {
+        if (showSkeleton) setLoading(true);
+        try {
+            const data = await getCollections();
+            const filteredData = data.filter((item: any) => {
+                const title = item.title?.toLowerCase() || '';
+                return !title.includes('omni cartridges') && !title.includes('microblading pen');
+            });
+            setCollections(filteredData);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
-        async function loadCollections() {
-            try {
-                const data = await getCollections();
-                const filteredData = data.filter((item: any) => {
-                    const title = item.title?.toLowerCase() || '';
-                    return !title.includes('omni cartridges') && !title.includes('microblading pen');
-                });
-                setCollections(filteredData);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        }
-        loadCollections();
+        loadCollections(true);
     }, []);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        loadCollections(false);
+    };
 
     const renderItem = ({ item, index }: { item: any; index: number }) => (
         <Link href={`/collection/${encodeURIComponent(item.id)}`} asChild>
@@ -62,18 +70,7 @@ export default function ShopScreen() {
                 <Text style={styles.subtitle}>Curated just for you</Text>
             </Animated.View>
 
-            {/* <Link href="/design" asChild>
-                <TouchableOpacity style={styles.bannerContainer}>
-                    <View style={styles.bannerContent}>
-                        <MaterialCommunityIcons name="face-woman-shimmer" size={32} color="#fff" />
-                        <View>
-                            <Text style={styles.bannerTitle}>Design Your Eyebrows</Text>
-                            <Text style={styles.bannerSubtitle}>Try it now!</Text>
-                        </View>
-                    </View>
-                    <MaterialCommunityIcons name="arrow-right" size={24} color="#fff" />
-                </TouchableOpacity>
-            </Link> */}
+
 
             {loading ? (
                 <View style={styles.loadingContainer}>
@@ -88,6 +85,9 @@ export default function ShopScreen() {
                     contentContainerStyle={styles.listContent}
                     renderItem={renderItem}
                     showsVerticalScrollIndicator={false}
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor="#000"
                 />
             )}
         </SafeAreaView>

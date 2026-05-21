@@ -1,16 +1,16 @@
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Image } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 type EyebrowOverlayProps = {
     color?: string;
     initialScale?: number;
+    flipped?: boolean;
 };
 
-export const EyebrowOverlay = ({ color = '#4A3B2C', initialScale = 1 }: EyebrowOverlayProps) => {
+export const EyebrowOverlay = ({ color = '#4A3B2C', initialScale = 1, flipped = false }: EyebrowOverlayProps) => {
     const scale = useSharedValue(initialScale);
     const savedScale = useSharedValue(initialScale);
     const rotation = useSharedValue(0);
@@ -52,7 +52,8 @@ export const EyebrowOverlay = ({ color = '#4A3B2C', initialScale = 1 }: EyebrowO
         transform: [
             { translateX: translateX.value },
             { translateY: translateY.value },
-            { scale: scale.value },
+            { scaleX: scale.value * (flipped ? -1 : 1) },
+            { scaleY: scale.value },
             { rotateZ: `${rotation.value}rad` },
         ],
     }));
@@ -60,13 +61,11 @@ export const EyebrowOverlay = ({ color = '#4A3B2C', initialScale = 1 }: EyebrowO
     return (
         <GestureDetector gesture={composed}>
             <Animated.View style={[styles.container, animatedStyle]}>
-                {/* Placeholder for Eyebrow Asset - replacing with an icon for now */}
-                <View style={styles.eyebrowVisual}>
-                    <MaterialCommunityIcons name="eye-outline" size={80} color={color} />
-                    {/* In the future, this will be an Image component source={require('path/to/eyebrow.png')} */}
-                </View>
-
-                {/* Visual guide for selection/editing state could go here */}
+                <Image
+                    source={require('../assets/images/eyebrow_stencil.png')}
+                    style={[styles.eyebrowImage, { tintColor: color }]}
+                    resizeMode="contain"
+                />
             </Animated.View>
         </GestureDetector>
     );
@@ -77,9 +76,10 @@ const styles = StyleSheet.create({
         position: 'absolute',
         alignSelf: 'center',
         top: '40%',
-        // Being absolutely positioned in the center initially
+        padding: 10,
     },
-    eyebrowVisual: {
-        // bounding box styles if needed
+    eyebrowImage: {
+        width: 160,
+        height: 50,
     }
 });

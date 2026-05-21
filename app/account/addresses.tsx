@@ -3,7 +3,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useToast } from '@/components/ui/Toast';
 import { router, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { customerAddressCreate, customerAddressDelete, customerAddressUpdate } from '../../api/shopify';
 import { useAuthStore } from '../../store/authStore';
@@ -15,6 +15,18 @@ export default function AddressesScreen() {
     const [modalVisible, setModalVisible] = useState(false);
     const [loading, setLoading] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await fetchCustomer();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     // Address Form State
     const [address1, setAddress1] = useState('');
@@ -183,6 +195,9 @@ export default function AddressesScreen() {
                 renderItem={renderAddress}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#000"
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
                         <IconSymbol name="location" size={48} color="#ccc" />

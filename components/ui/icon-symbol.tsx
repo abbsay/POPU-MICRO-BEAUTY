@@ -14,11 +14,40 @@ type IconSymbolName = keyof typeof MAPPING;
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
 const MAPPING = {
+  // Essential tab and navigation icons
   'house.fill': 'home',
+  'bag.fill': 'shopping-bag',
+  'bag': 'shopping-bag',
+  'magnifyingglass': 'search',
+  'cart.fill': 'shopping-cart',
+  'person.fill': 'person',
+  'chevron.left': 'chevron-left',
+  'chevron.right': 'chevron-right',
+  'chevron.down': 'keyboard-arrow-down',
+  
+  // UI action and state icons
+  'minus': 'remove',
+  'plus': 'add',
+  'trash': 'delete',
+  'xmark.circle.fill': 'cancel',
+  'xmark': 'close',
+  'checkmark': 'check',
+  'checkmark.circle.fill': 'check-circle',
+  'exclamationmark.circle.fill': 'error',
+  
+  // Feature-specific icons
+  'clock': 'access-time',
+  'pencil': 'edit',
+  'location': 'room',
+  'info.circle': 'info',
+  'heart.fill': 'favorite',
+  'heart': 'favorite-border',
+  'eye.slash': 'visibility-off',
+  'eye': 'visibility',
+  'list.bullet': 'view-list',
+  'square.grid.2x2': 'grid-view',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
-  'chevron.left': 'chevron-left',
 } as IconMapping;
 
 /**

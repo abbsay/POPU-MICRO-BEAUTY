@@ -1,7 +1,6 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getCollections, getProducts, searchProducts, getMainPromotionProducts } from '../../api/shopify';
@@ -11,9 +10,6 @@ import { Skeleton } from '../../components/ui/Skeleton';
 
 const { width } = Dimensions.get('window');
 
-// Mock data for "Promo" - in a real app this could come from a specific collection or metafield
-const PROMO_IMAGE = require('../../assets/images/adaptive-icon.png'); // Fallback or use a real URL if avaialble
-
 export default function HomeScreen() {
   const [products, setProducts] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
@@ -22,53 +18,62 @@ export default function HomeScreen() {
   const [newArrivals, setNewArrivals] = useState<any[]>([]);
   const [bestSellers, setBestSellers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = async (showSkeleton = true) => {
+    if (showSkeleton) setLoading(true);
+    try {
+      const [productsData, collectionsDataRaw, hero1, hero2, newArrivalsData, bestSellersData] = await Promise.all([
+        getProducts(20),
+        getCollections(30),
+        searchProducts('POPU CLOVER CARTRIDGE NEEDLES'),
+        searchProducts('POPU DIVA'),
+        getMainPromotionProducts(4, "CREATED_AT", true),
+        getMainPromotionProducts(4, "BEST_SELLING", false)
+      ]);
+      setProducts(productsData);
+
+      const topCollectionTitles = [
+        "PMU machine kit",
+        "POPU PMU Machines",
+        "POPU PMU Cartridges",
+        "SMP Cartridges Needles",
+        "Vernus Microneedle Cartridges",
+        "Permanent Makeup Practice Skin",
+        "Cups"
+      ];
+      
+      const filteredCollections = topCollectionTitles
+        .map(title => collectionsDataRaw.find((c: any) => c.title === title))
+        .filter(Boolean);
+        
+      setCollections(filteredCollections.length > 0 ? filteredCollections : collectionsDataRaw.slice(0, 7));
+
+      // Prepare hero items
+      const h1 = hero1?.[0] || productsData[0];
+      const h2 = hero2?.[0] || productsData[1];
+      setHeroItems([h1, h2].filter(Boolean));
+      setNewArrivals(newArrivalsData);
+      setBestSellers(bestSellersData);
+      
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [productsData, collectionsDataRaw, hero1, hero2, newArrivalsData, bestSellersData] = await Promise.all([
-          getProducts(20),
-          getCollections(30),
-          searchProducts('POPU CLOVER CARTRIDGE NEEDLES'),
-          searchProducts('POPU DIVA'), // Using 'POPU DIVA' to be safe against typos/long names
-          getMainPromotionProducts(4, "CREATED_AT", true),
-          getMainPromotionProducts(4, "BEST_SELLING", false)
-        ]);
-        setProducts(productsData);
-
-        const topCollectionTitles = [
-          "PMU machine kit",
-          "POPU PMU Machines",
-          "POPU PMU Cartridges",
-          "SMP Cartridges Needles",
-          "Vernus Microneedle Cartridges",
-          "Permanent Makeup Practice Skin",
-          "Cups"
-        ];
-        
-        const filteredCollections = topCollectionTitles
-          .map(title => collectionsDataRaw.find((c: any) => c.title === title))
-          .filter(Boolean);
-          
-        setCollections(filteredCollections.length > 0 ? filteredCollections : collectionsDataRaw.slice(0, 7));
-
-        // Prepare hero items
-        const h1 = hero1?.[0] || productsData[0];
-        const h2 = hero2?.[0] || productsData[1];
-        setHeroItems([h1, h2].filter(Boolean));
-        setNewArrivals(newArrivalsData);
-        setBestSellers(bestSellersData);
-        
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
+    loadData(true);
   }, []);
 
-  const heroProduct = products[0];
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData(false);
+  };
+
+
 
   return (
     <View style={styles.container}>
@@ -76,14 +81,15 @@ export default function HomeScreen() {
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.header}>
           <Text style={styles.brandTitle}>POPU</Text>
-          {/* <Link href="/design" asChild>
-            <TouchableOpacity style={styles.cartBtn}>
-              <MaterialCommunityIcons name="face-woman-shimmer" size={24} color="#000" />
-            </TouchableOpacity>
-          </Link> */}
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+          }
+        >
           {loading ? (
             <View style={{ paddingHorizontal: 20 }}>
               {/* Hero Skeleton */}
@@ -194,21 +200,7 @@ export default function HomeScreen() {
                 ))}
               </View>
 
-              {/* Promo Banner */}
-              {/* Promo Banner */}
-              {/* Design Your Eyebrows Banner */}
-              {/* <Link href="/design" asChild>
-                <TouchableOpacity style={styles.bannerContainer}>
-                  <View style={styles.bannerContent}>
-                    <MaterialCommunityIcons name="face-woman-shimmer" size={32} color="#fff" />
-                    <View>
-                      <Text style={styles.bannerTitle}>Design Your Eyebrows</Text>
-                      <Text style={styles.bannerSubtitle}>Try it now!</Text>
-                    </View>
-                  </View>
-                  <MaterialCommunityIcons name="arrow-right" size={24} color="#fff" />
-                </TouchableOpacity>
-              </Link> */}
+
 
               <Text style={styles.sectionHeader}>BEST SELLERS</Text>
               <View style={styles.grid}>

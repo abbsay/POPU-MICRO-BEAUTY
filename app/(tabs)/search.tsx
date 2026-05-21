@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Dimensions, FlatList, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, RefreshControl } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPopularProducts, searchProducts } from '../../api/shopify';
@@ -23,6 +23,18 @@ export default function SearchScreen() {
     const [history, setHistory] = useState<string[]>([]);
     const [popularProducts, setPopularProducts] = useState<any[]>([]);
     const [pageLoading, setPageLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await loadPopularProducts();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
         loadInitialData();
@@ -148,7 +160,12 @@ export default function SearchScreen() {
             ) : (
                 <View style={{ flex: 1 }}>
                     {!hasSearched && query.length === 0 ? (
-                        <ScrollView contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: HORIZONTAL_PADDING }}>
+                        <ScrollView 
+                            contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: HORIZONTAL_PADDING }}
+                            refreshControl={
+                                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#000" />
+                            }
+                        >
                             {/* History Section */}
                             {history.length > 0 && (
                                 <View style={styles.section}>
