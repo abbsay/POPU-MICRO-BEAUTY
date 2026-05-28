@@ -66,9 +66,10 @@ export async function getProductById(id: string) {
         id
         title
         descriptionHtml
-        images(first: 5) {
+        images(first: 100) {
           edges {
             node {
+              id
               url
             }
           }
@@ -89,6 +90,10 @@ export async function getProductById(id: string) {
             node {
               id
               title
+              image {
+                id
+                url
+              }
               selectedOptions {
                  name
                  value

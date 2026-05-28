@@ -80,7 +80,11 @@ export default function HomeScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.brandTitle}>POPU</Text>
+          <Image 
+            source={require('../../assets/images/popu_logo.png')} 
+            style={styles.logo} 
+            resizeMode="contain"
+          />
         </View>
 
         <ScrollView 
@@ -238,11 +242,10 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     backgroundColor: '#fff',
   },
-  brandTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: 2,
-    fontFamily: 'System',
+  logo: {
+    width: 45,
+    height: 45,
+    borderRadius: 8,
   },
   cartBtn: {
     padding: 8,

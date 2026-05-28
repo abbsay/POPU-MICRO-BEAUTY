@@ -5,6 +5,7 @@ import { Link, router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    FlatList,
     Image,
     Modal,
     ScrollView,
@@ -45,6 +46,8 @@ export default function ProductDetailScreen() {
 
     // Animation Refs & State
     const cartIconRef = useRef<View>(null);
+    const galleryRef = useRef<FlatList>(null);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [flyingItem, setFlyingItem] = useState<{ uri: string } | null>(null);
     const flyX = useSharedValue(0);
     const flyY = useSharedValue(0);
@@ -81,6 +84,35 @@ export default function ProductDetailScreen() {
             loadProduct(decodedId);
         }
     }, [id]);
+
+    // Scroll gallery to variant image when selected options change
+    useEffect(() => {
+        if (!product?.images?.edges || !product?.variants?.edges) return;
+
+        // Find the variant matching current selected options
+        const variantEdge = product.variants.edges.find((edge: any) =>
+            edge.node.selectedOptions.every((opt: any) =>
+                selectedOptions[opt.name] === opt.value
+            )
+        );
+        const variant = variantEdge?.node;
+        if (!variant?.image) return;
+
+        // Find which image index matches this variant's image
+        const index = product.images.edges.findIndex(
+            (edge: any) =>
+                (variant.image.id && edge.node.id === variant.image.id) ||
+                edge.node.url === variant.image.url
+        );
+
+        if (index !== -1 && index !== currentImageIndex) {
+            setCurrentImageIndex(index);
+            // Use a small delay to ensure FlatList is ready
+            setTimeout(() => {
+                galleryRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0 });
+            }, 50);
+        }
+    }, [selectedOptions, product]);
 
     async function loadProduct(productId: string) {
         try {
@@ -213,22 +245,46 @@ export default function ProductDetailScreen() {
                 contentInsetAdjustmentBehavior="never" // Prevent automated insets from messing up the layout
             >
                 {/* Image Gallery */}
-                <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.gallery}>
-                    {product.images.edges.map((edge: any, index: number) => {
-                        const ImageComponent = index === 0 ? Animated.Image : Image;
+                <FlatList
+                    ref={galleryRef}
+                    data={product.images.edges}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.gallery}
+                    initialNumToRender={3}
+                    maxToRenderPerBatch={5}
+                    getItemLayout={(_, index) => ({
+                        length: width,
+                        offset: width * index,
+                        index,
+                    })}
+                    onScrollToIndexFailed={(info) => {
+                        // Fallback: wait for render then retry
+                        setTimeout(() => {
+                            galleryRef.current?.scrollToIndex({ index: info.index, animated: true });
+                        }, 200);
+                    }}
+                    keyExtractor={(_, index) => String(index)}
+                    renderItem={({ item: edge, index }) => {
                         const context = typeof origin === 'string' ? origin : 'shop';
-                        const extraProps = index === 0 ? { sharedTransitionTag: `product-image-${context}-${product.id}` } : {};
-
+                        if (index === 0) {
+                            return (
+                                <Animated.Image
+                                    source={{ uri: edge.node.url }}
+                                    style={[styles.image, { width }]}
+                                    {...{ sharedTransitionTag: `product-image-${context}-${product.id}` } as any}
+                                />
+                            );
+                        }
                         return (
-                            <ImageComponent
-                                key={index}
+                            <Image
                                 source={{ uri: edge.node.url }}
                                 style={[styles.image, { width }]}
-                                {...extraProps}
                             />
                         );
-                    })}
-                </ScrollView>
+                    }}
+                />
 
                 <View style={styles.infoContainer}>
                     <Text style={styles.title}>{product.title}</Text>

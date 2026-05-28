@@ -2,7 +2,7 @@
   "expo": {
     "name": "POPU",
     "slug": "shopify-popu-app",
-    "version": "1.1.1",
+    "version": "1.1.3",
     "orientation": "portrait",
     "icon": "./assets/images/popu_logo.png",
     "scheme": "shopifypopuapp",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.raredoge.shopify-popu-app",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDisplayName": "POPU"
