@@ -3,6 +3,7 @@ import { Stack, router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { customerAccessTokenCreate, customerCreate } from '../../api/shopify';
 import { Colors } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
@@ -12,6 +13,7 @@ export default function SignupScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [referralCode, setReferralCode] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const login = useAuthStore((state) => state.login);
@@ -39,6 +41,13 @@ export default function SignupScreen() {
             // 2. Login immediately
             const tokenRes = await customerAccessTokenCreate(email, password);
             if (tokenRes.customerAccessToken) {
+                if (referralCode.trim()) {
+                    await AsyncStorage.setItem('referred_by_code', referralCode.trim());
+                    const currentCartId = useCartStore.getState().cartId;
+                    if (currentCartId) {
+                        await useCartStore.getState().applyReferralCode(referralCode.trim());
+                    }
+                }
                 await login(tokenRes.customerAccessToken.accessToken, tokenRes.customerAccessToken.expiresAt);
                 await useCartStore.getState().associateCustomer(tokenRes.customerAccessToken.accessToken);
                 router.dismissTo('/(tabs)/account');
@@ -93,6 +102,15 @@ export default function SignupScreen() {
                             onChangeText={setConfirmPassword}
                         />
                     </View>
+
+                    <Text style={styles.label}>Referral Code (Optional)</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Enter referral code"
+                        autoCapitalize="none"
+                        value={referralCode}
+                        onChangeText={setReferralCode}
+                    />
 
                     <TouchableOpacity
                         style={[styles.button, loading && styles.buttonDisabled]}

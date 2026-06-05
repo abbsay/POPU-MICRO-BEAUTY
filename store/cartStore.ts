@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { addToCart, cartBuyerIdentityUpdate, createCart, getCart, cartLinesRemove, cartLinesUpdate } from '../api/shopify';
+import { addToCart, cartBuyerIdentityUpdate, createCart, getCart, cartLinesRemove, cartLinesUpdate, cartAttributesUpdate } from '../api/shopify';
 
 interface CartState {
     cartId: string | null;
@@ -9,6 +9,7 @@ interface CartState {
     checkoutUrl: string | null;
     loading: boolean;
     error: string | null;
+    referralApplied?: boolean;
 
     initializeCart: () => Promise<void>;
     addItem: (variantId: string, quantity?: number) => Promise<void>;
@@ -16,6 +17,7 @@ interface CartState {
     updateItemQuantity: (lineId: string, quantity: number) => Promise<void>;
     resetCart: () => void;
     associateCustomer: (accessToken: string) => Promise<string | null>;
+    applyReferralCode: (referrerCode: string) => Promise<void>;
 }
 
 export const useCartStore = create<CartState>()(
@@ -26,9 +28,10 @@ export const useCartStore = create<CartState>()(
             checkoutUrl: null,
             loading: false,
             error: null,
+            referralApplied: false,
 
             initializeCart: async () => {
-                const { cartId } = get();
+                const { cartId, referralApplied } = get();
                 if (cartId) {
                     try {
                         set({ loading: true });
@@ -39,8 +42,16 @@ export const useCartStore = create<CartState>()(
                                 checkoutUrl: cart.checkoutUrl,
                                 loading: false,
                             });
+
+                            // Auto-apply referral if not applied yet
+                            if (!referralApplied) {
+                                const referrerCode = await AsyncStorage.getItem('referred_by_code');
+                                if (referrerCode) {
+                                    await get().applyReferralCode(referrerCode);
+                                }
+                            }
                         } else {
-                            set({ cartId: null, lines: [], checkoutUrl: null, loading: false }); // Cart expired
+                            set({ cartId: null, lines: [], checkoutUrl: null, loading: false, referralApplied: false }); // Cart expired
                         }
                     } catch (e) {
                         console.error(e);
@@ -51,7 +62,7 @@ export const useCartStore = create<CartState>()(
 
             addItem: async (variantId: string, quantity = 1) => {
                 set({ loading: true, error: null });
-                let { cartId } = get();
+                let { cartId, referralApplied } = get();
                 const lines = [{ merchandiseId: variantId, quantity }];
 
                 try {
@@ -67,6 +78,8 @@ export const useCartStore = create<CartState>()(
 
                     if (!cartId || !cart) {
                         cart = await createCart(lines);
+                        referralApplied = false;
+                        set({ referralApplied: false });
                     }
 
                     if (!cart) {
@@ -79,6 +92,14 @@ export const useCartStore = create<CartState>()(
                         checkoutUrl: cart.checkoutUrl,
                         loading: false,
                     });
+
+                    // Auto-apply referral if not applied yet
+                    if (!referralApplied) {
+                        const referrerCode = await AsyncStorage.getItem('referred_by_code');
+                        if (referrerCode) {
+                            await get().applyReferralCode(referrerCode);
+                        }
+                    }
                 } catch (error: any) {
                     console.error('Failed to add to cart:', error);
                     set({ error: error.message || 'Failed to add item', loading: false });
@@ -146,7 +167,28 @@ export const useCartStore = create<CartState>()(
                 }
             },
 
-            resetCart: () => set({ cartId: null, lines: [], checkoutUrl: null }),
+            resetCart: () => set({ cartId: null, lines: [], checkoutUrl: null, referralApplied: false }),
+
+            applyReferralCode: async (referrerCode: string) => {
+                const { cartId } = get();
+                if (cartId && referrerCode) {
+                    try {
+                        set({ loading: true });
+                        const cart = await cartAttributesUpdate(cartId, [{ key: 'referred_by', value: referrerCode }]);
+                        if (cart) {
+                            set({
+                                lines: cart.lines.edges.map((e: any) => e.node),
+                                checkoutUrl: cart.checkoutUrl,
+                                referralApplied: true,
+                                loading: false,
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Failed to apply referral code to cart:', error);
+                        set({ loading: false });
+                    }
+                }
+            },
         }),
         {
             name: 'shopify-cart-storage',

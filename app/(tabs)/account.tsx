@@ -1,17 +1,24 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import Constants from 'expo-constants';
 import { Stack, router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal, Share, Clipboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getShopInfo } from '../../api/shopify';
 import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
+import { useToast } from '../../components/ui/Toast';
+import { Colors } from '../../constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function AccountScreen() {
     const { customer, logout, customerAccessToken, fetchCustomer } = useAuthStore();
     const [shopInfo, setShopInfo] = useState<any>(null);
+    const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+    const { showToast } = useToast();
 
     useEffect(() => {
         if (customerAccessToken) {
@@ -22,6 +29,64 @@ export default function AccountScreen() {
             setShopInfo(info);
         }).catch(err => console.log("Failed to fetch shop info", err));
     }, [customerAccessToken]);
+
+    // Check if new user for welcome popup
+    useEffect(() => {
+        const checkWelcomeReward = async () => {
+            if (customer && customer.email) {
+                // Determine if user is new (0 orders)
+                const orderCount = customer.orders?.edges?.length || 0;
+                if (orderCount === 0) {
+                    const seenKey = `welcome_popup_seen_${customer.email}`;
+                    const hasSeen = await AsyncStorage.getItem(seenKey);
+                    if (!hasSeen) {
+                        setShowWelcomeModal(true);
+                    }
+                }
+            }
+        };
+        checkWelcomeReward();
+    }, [customer]);
+
+    const handleShareReferral = async () => {
+        if (!customer?.email) return;
+        const code = `POPU-${customer.email.split('@')[0].toUpperCase()}`;
+        const message = `Join POPU Micro Beauty and get $100 off your first purchase! Use my referral code ${code} when you sign up. Download the app today: https://apps.apple.com/app/id6758688074`;
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            await Share.share({ message });
+        } catch (error) {
+            console.error('Failed to share referral code:', error);
+        }
+    };
+
+    const handleCopyReferral = () => {
+        if (!customer?.email) return;
+        const code = `POPU-${customer.email.split('@')[0].toUpperCase()}`;
+        Clipboard.setString(code);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast('Referral code copied to clipboard!', 'success');
+    };
+
+    const handleCopyPromo = async () => {
+        Clipboard.setString('POPUWELCOME100');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast('Promo code POPUWELCOME100 copied!', 'success');
+        
+        if (customer?.email) {
+            const seenKey = `welcome_popup_seen_${customer.email}`;
+            await AsyncStorage.setItem(seenKey, 'true');
+        }
+        setShowWelcomeModal(false);
+    };
+
+    const handleDismissWelcome = async () => {
+        if (customer?.email) {
+            const seenKey = `welcome_popup_seen_${customer.email}`;
+            await AsyncStorage.setItem(seenKey, 'true');
+        }
+        setShowWelcomeModal(false);
+    };
 
     const handleLogout = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -132,8 +197,31 @@ export default function AccountScreen() {
                         <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
                     </TouchableOpacity>
 
-                    {/* Loyalty Card (Mock) */}
-
+                    {/* Referral & Rewards Card */}
+                    <View style={styles.referralCard}>
+                        <View style={styles.referralHeader}>
+                            <MaterialCommunityIcons name="gift-outline" size={20} color="#A390E4" />
+                            <Text style={styles.referralTitle}>Invite Friends & Earn Rewards</Text>
+                        </View>
+                        <Text style={styles.referralDesc}>
+                            Share POPU with friends! They'll get a $100 welcome reward, and you'll receive exclusive credits when they make their first purchase.
+                        </Text>
+                        <View style={styles.referralActions}>
+                            <TouchableOpacity style={styles.referralCodeBox} onPress={handleCopyReferral} activeOpacity={0.7}>
+                                <Text style={styles.referralCodeLabel}>YOUR REFERRAL CODE</Text>
+                                <View style={styles.referralCodeRow}>
+                                    <Text style={styles.referralCodeText}>
+                                        {`POPU-${customer.email.split('@')[0].toUpperCase()}`}
+                                    </Text>
+                                    <MaterialCommunityIcons name="content-copy" size={14} color="#666" />
+                                </View>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.referralShareBtn} onPress={handleShareReferral} activeOpacity={0.8}>
+                                <MaterialCommunityIcons name="share-variant" size={16} color="#fff" style={{ marginRight: 6 }} />
+                                <Text style={styles.referralShareBtnText}>SHARE</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
 
                 {/* Menu Sections */}
@@ -206,9 +294,59 @@ export default function AccountScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.versionInfo}>
-                    <Text style={styles.versionText}>Version 1.1.0 (Build 7)</Text>
+                    <Text style={styles.versionText}>
+                        Version {Constants.expoConfig?.version || '1.1.4'} (Build {Constants.expoConfig?.ios?.buildNumber || '10'})
+                    </Text>
                 </View>
             </ScrollView>
+
+            {/* Welcome Reward Modal */}
+            <Modal
+                visible={showWelcomeModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={handleDismissWelcome}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <TouchableOpacity style={styles.modalCloseButton} onPress={handleDismissWelcome}>
+                            <MaterialCommunityIcons name="close" size={20} color="#000" />
+                        </TouchableOpacity>
+                        
+                        <View style={styles.modalGiftIconContainer}>
+                            <LinearGradient
+                                colors={['#A390E4', '#E8A0BF']}
+                                style={styles.modalGiftIconGradient}
+                            >
+                                <MaterialCommunityIcons name="gift" size={36} color="#fff" />
+                            </LinearGradient>
+                        </View>
+                        
+                        <Text style={styles.modalTitle}>WELCOME TO POPU!</Text>
+                        <Text style={styles.modalSubtitle}>Exclusive $100 Welcome Gift</Text>
+                        
+                        <Text style={styles.modalDescription}>
+                            Here is a $100 discount coupon code for your first purchase. Copy it now and use it at checkout!
+                        </Text>
+                        
+                        <TouchableOpacity style={styles.modalCodeBox} onPress={handleCopyPromo} activeOpacity={0.8}>
+                            <Text style={styles.modalCodeLabel}>TAP TO COPY PROMO CODE</Text>
+                            <View style={styles.modalCodeRow}>
+                                <Text style={styles.modalCodeText}>POPUWELCOME100</Text>
+                                <MaterialCommunityIcons name="content-copy" size={16} color="#A390E4" />
+                            </View>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity style={styles.modalPrimaryBtn} onPress={handleCopyPromo}>
+                            <Text style={styles.modalPrimaryBtnText}>COPY & START SHOPPING</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity style={styles.modalSecondaryBtn} onPress={handleDismissWelcome}>
+                            <Text style={styles.modalSecondaryBtnText}>Dismiss</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -454,5 +592,209 @@ const styles = StyleSheet.create({
     versionText: {
         color: '#ccc',
         fontSize: 12,
+    },
+
+    // Referral Card Styles
+    referralCard: {
+        backgroundColor: '#fff',
+        padding: 20,
+        borderRadius: 16,
+        marginBottom: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    referralHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+        gap: 8,
+    },
+    referralTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#000',
+    },
+    referralDesc: {
+        fontSize: 13,
+        color: '#666',
+        lineHeight: 18,
+        marginBottom: 15,
+    },
+    referralActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    referralCodeBox: {
+        flex: 1,
+        backgroundColor: '#F9F9F9',
+        borderWidth: 1,
+        borderColor: '#EFEFEF',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        justifyContent: 'center',
+    },
+    referralCodeLabel: {
+        fontSize: 9,
+        color: '#999',
+        fontWeight: 'bold',
+        marginBottom: 2,
+        letterSpacing: 0.5,
+    },
+    referralCodeRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    referralCodeText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#A390E4',
+    },
+    referralShareBtn: {
+        backgroundColor: '#000',
+        borderRadius: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    referralShareBtnText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+    },
+
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        borderRadius: 24,
+        paddingHorizontal: 24,
+        paddingVertical: 32,
+        width: '100%',
+        maxWidth: 340,
+        alignItems: 'center',
+        position: 'relative',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 15,
+        elevation: 10,
+    },
+    modalCloseButton: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        padding: 4,
+    },
+    modalGiftIconContainer: {
+        marginBottom: 20,
+    },
+    modalGiftIconGradient: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: "#A390E4",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#000',
+        letterSpacing: 1,
+        textAlign: 'center',
+        marginBottom: 4,
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#E8A0BF',
+        textAlign: 'center',
+        marginBottom: 16,
+        letterSpacing: 0.5,
+    },
+    modalDescription: {
+        fontSize: 13,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 18,
+        marginBottom: 24,
+        paddingHorizontal: 10,
+    },
+    modalCodeBox: {
+        backgroundColor: '#F9F9F9',
+        borderWidth: 1,
+        borderColor: '#EFEFEF',
+        borderRadius: 12,
+        width: '100%',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        marginBottom: 24,
+        alignItems: 'center',
+    },
+    modalCodeLabel: {
+        fontSize: 9,
+        color: '#999',
+        fontWeight: 'bold',
+        marginBottom: 4,
+        letterSpacing: 0.5,
+    },
+    modalCodeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    modalCodeText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#000',
+        letterSpacing: 1,
+    },
+    modalPrimaryBtn: {
+        backgroundColor: '#000',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        borderRadius: 12,
+        width: '100%',
+        alignItems: 'center',
+        marginBottom: 12,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    modalPrimaryBtnText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+    },
+    modalSecondaryBtn: {
+        paddingVertical: 8,
+        width: '100%',
+        alignItems: 'center',
+    },
+    modalSecondaryBtnText: {
+        color: '#999',
+        fontSize: 13,
+        fontWeight: '500',
     },
 });

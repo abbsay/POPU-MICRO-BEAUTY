@@ -359,6 +359,63 @@ export async function cartBuyerIdentityUpdate(cartId: string, customerAccessToke
   return response.cartBuyerIdentityUpdate.cart;
 }
 
+export async function cartAttributesUpdate(cartId: string, attributes: { key: string; value: string }[]) {
+  const query = `
+    mutation cartAttributesUpdate($attributes: [AttributeInput!]!, $cartId: ID!) {
+      cartAttributesUpdate(attributes: $attributes, cartId: $cartId) {
+        cart {
+          id
+          checkoutUrl
+          lines(first: 50) {
+            edges {
+              node {
+                id
+                quantity
+                merchandise {
+                  ... on ProductVariant {
+                    id
+                    title
+                    price {
+                      amount
+                      currencyCode
+                    }
+                    product {
+                      title
+                      images(first: 1) {
+                        edges {
+                          node {
+                            url
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          cost {
+            totalAmount {
+              amount
+              currencyCode
+            }
+          }
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { cartId, attributes });
+  if (response.cartAttributesUpdate?.userErrors?.length > 0) {
+    console.error("cartAttributesUpdate errors:", response.cartAttributesUpdate.userErrors);
+    throw new Error(response.cartAttributesUpdate.userErrors[0].message);
+  }
+  return response.cartAttributesUpdate?.cart;
+}
+
 export async function getCart(cartId: string) {
   const query = `
     query getCart($cartId: ID!) {
