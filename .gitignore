@@ -42,3 +42,7 @@ app-example
 /ios
 /android
 .env
+.env2
+screenshot.png
+scripts/get-shopify-token.js
+

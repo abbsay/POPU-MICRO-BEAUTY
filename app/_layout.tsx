@@ -2,18 +2,14 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ShopifyCheckoutSheetProvider } from '@shopify/checkout-sheet-kit';
+import { ToastProvider } from '@/components/ui/Toast';
+import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
-
-import { ShopifyCheckoutSheetProvider } from '@shopify/checkout-sheet-kit';
-
-import { ToastProvider } from '@/components/ui/Toast';
-
-import { AnimatedSplashScreen } from '@/components/AnimatedSplashScreen';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -41,6 +37,7 @@ export default function RootLayout() {
               <Stack.Screen name="product/[id]" options={{ presentation: 'card', headerBackTitle: '' }} />
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
               <Stack.Screen name="account/orders" options={{ presentation: 'card', headerBackTitle: '' }} />
+              <Stack.Screen name="account/coupons" options={{ presentation: 'card', title: 'My Coupons', headerBackTitle: '' }} />
               <Stack.Screen name="account/addresses" options={{ presentation: 'card', headerBackTitle: '' }} />
               <Stack.Screen name="account/profile" options={{ presentation: 'card', headerBackTitle: '' }} />
               <Stack.Screen name="account/wishlist" options={{ presentation: 'card', headerBackTitle: '' }} />

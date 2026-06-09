@@ -17,7 +17,8 @@
             },
             "env": {
                 "EXPO_PUBLIC_SHOPIFY_STORE_DOMAIN": "popumicrobeauty.myshopify.com",
-                "EXPO_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN": "4f2b70fcf05a4bd1dc4387e0b174e9e3"
+                "EXPO_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN": "4f2b70fcf05a4bd1dc4387e0b174e9e3",
+                "EXPO_PUBLIC_SHOPIFY_ADMIN_ACCESS_TOKEN": "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"
             }
         }
     },

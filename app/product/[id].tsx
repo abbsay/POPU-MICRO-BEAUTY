@@ -237,7 +237,6 @@ export default function ProductDetailScreen() {
                 headerTransparent: true,
                 headerTintColor: '#000',
                 headerBackTitle: '', // Keep clean title
-                headerBackTitleVisible: false, // Explicitly hide text
                 // Custom headerLeft removed to use system default
                 headerRight: () => null // Removed icons from header as they are now in bottom bar
             }} />

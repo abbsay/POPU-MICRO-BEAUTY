@@ -1,6 +1,6 @@
 import { Link, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getCollections } from '../../api/shopify';
@@ -85,9 +85,13 @@ export default function ShopScreen() {
                     contentContainerStyle={styles.listContent}
                     renderItem={renderItem}
                     showsVerticalScrollIndicator={false}
-                    refreshing={refreshing}
-                    onRefresh={onRefresh}
-                    tintColor="#000"
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor="#000"
+                        />
+                    }
                 />
             )}
         </SafeAreaView>

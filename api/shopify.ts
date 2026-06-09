@@ -636,7 +636,7 @@ export async function getCustomer(accessToken: string) {
             }
           }
         }
-        orders(first: 10) {
+        orders(first: 20) {
            edges {
              node {
                id
@@ -645,6 +645,15 @@ export async function getCustomer(accessToken: string) {
                totalPrice {
                  amount
                  currencyCode
+               }
+               discountApplications(first: 5) {
+                 edges {
+                   node {
+                     ... on DiscountCodeApplication {
+                       code
+                     }
+                   }
+                 }
                }
              }
            }

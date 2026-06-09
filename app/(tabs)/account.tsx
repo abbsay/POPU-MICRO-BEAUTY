@@ -11,14 +11,40 @@ import { getShopInfo } from '../../api/shopify';
 import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
 import { useToast } from '../../components/ui/Toast';
-import { Colors } from '../../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from 'react-native-reanimated';
 
 export default function AccountScreen() {
     const { customer, logout, customerAccessToken, fetchCustomer } = useAuthStore();
     const [shopInfo, setShopInfo] = useState<any>(null);
     const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+    const [referredByCode, setReferredByCode] = useState<string | null>(null);
     const { showToast } = useToast();
+
+    const isPromoActive = new Date() < new Date('2026-07-16T00:00:00Z');
+
+    const glowScale = useSharedValue(1);
+    const glowOpacity = useSharedValue(0.45);
+
+    useEffect(() => {
+        glowScale.value = withRepeat(
+            withTiming(1.18, { duration: 2000 }),
+            -1,
+            false
+        );
+        glowOpacity.value = withRepeat(
+            withTiming(0, { duration: 2000 }),
+            -1,
+            false
+        );
+    }, []);
+
+    const animatedGlowStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: glowScale.value }],
+            opacity: glowOpacity.value,
+        };
+    });
 
     useEffect(() => {
         if (customerAccessToken) {
@@ -28,7 +54,7 @@ export default function AccountScreen() {
         getShopInfo().then(info => {
             setShopInfo(info);
         }).catch(err => console.log("Failed to fetch shop info", err));
-    }, [customerAccessToken]);
+    }, [customerAccessToken, fetchCustomer]);
 
     // Check if new user for welcome popup
     useEffect(() => {
@@ -37,21 +63,31 @@ export default function AccountScreen() {
                 // Determine if user is new (0 orders)
                 const orderCount = customer.orders?.edges?.length || 0;
                 if (orderCount === 0) {
-                    const seenKey = `welcome_popup_seen_${customer.email}`;
-                    const hasSeen = await AsyncStorage.getItem(seenKey);
-                    if (!hasSeen) {
-                        setShowWelcomeModal(true);
+                    const refCode = await AsyncStorage.getItem('referred_by_code');
+                    
+                    // Show modal if either the welcome promo is active OR they registered via a referral code
+                    const shouldShowModal = isPromoActive || !!refCode;
+                    
+                    if (shouldShowModal) {
+                        const seenKey = `welcome_popup_seen_${customer.email}`;
+                        const hasSeen = await AsyncStorage.getItem(seenKey);
+                        if (!hasSeen) {
+                            setReferredByCode(refCode);
+                            setShowWelcomeModal(true);
+                        }
                     }
                 }
             }
         };
         checkWelcomeReward();
-    }, [customer]);
+    }, [customer, isPromoActive]);
 
     const handleShareReferral = async () => {
         if (!customer?.email) return;
         const code = `POPU-${customer.email.split('@')[0].toUpperCase()}`;
-        const message = `Join POPU Micro Beauty and get $100 off your first purchase! Use my referral code ${code} when you sign up. Download the app today: https://apps.apple.com/app/id6758688074`;
+        const message = isPromoActive
+            ? `Join POPU Micro Beauty and get a $125 Welcome Pack (5 x $20 welcome coupons + $25 bonus)! Use my referral code ${code} when you sign up. Download the app today: https://apps.apple.com/app/id6758688074`
+            : `Join POPU Micro Beauty and get a $25 bonus coupon! Use my referral code ${code} when you sign up. Download the app today: https://apps.apple.com/app/id6758688074`;
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             await Share.share({ message });
@@ -68,16 +104,13 @@ export default function AccountScreen() {
         showToast('Referral code copied to clipboard!', 'success');
     };
 
-    const handleCopyPromo = async () => {
-        Clipboard.setString('POPUWELCOME100');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast('Promo code POPUWELCOME100 copied!', 'success');
-        
+    const handleGoToCoupons = async () => {
         if (customer?.email) {
             const seenKey = `welcome_popup_seen_${customer.email}`;
             await AsyncStorage.setItem(seenKey, 'true');
         }
         setShowWelcomeModal(false);
+        router.push('/account/coupons');
     };
 
     const handleDismissWelcome = async () => {
@@ -88,10 +121,12 @@ export default function AccountScreen() {
         setShowWelcomeModal(false);
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         logout();
         useCartStore.getState().resetCart();
+        setReferredByCode(null);
+        await AsyncStorage.removeItem('referred_by_code');
     };
 
     const handleContactUs = async () => {
@@ -164,6 +199,18 @@ export default function AccountScreen() {
                     <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.push('/auth/signup')}>
                         <Text style={styles.secondaryBtnText}>CREATE ACCOUNT</Text>
                     </TouchableOpacity>
+
+                    {isPromoActive && (
+                        <View style={styles.promoBadgeContainer}>
+                            <Animated.View style={[styles.promoGlow, animatedGlowStyle]} />
+                            <View style={styles.promoBadge}>
+                                <MaterialCommunityIcons name="gift-outline" size={16} color="#A390E4" />
+                                <Text style={styles.promoText}>
+                                    New User Registration: Get a $100 Welcome Pack
+                                </Text>
+                            </View>
+                        </View>
+                    )}
                 </View>
             </SafeAreaView>
         );
@@ -197,6 +244,29 @@ export default function AccountScreen() {
                         <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
                     </TouchableOpacity>
 
+                    {/* My Coupons Banner */}
+                    <TouchableOpacity 
+                        onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            router.push('/account/coupons');
+                        }} 
+                        style={styles.couponsBanner} 
+                        activeOpacity={0.8}
+                    >
+                        <View style={styles.couponsBannerContent}>
+                            <View style={styles.couponsIconCircle}>
+                                <MaterialCommunityIcons name="ticket-percent-outline" size={24} color="#A390E4" />
+                            </View>
+                            <View style={styles.couponsTextContainer}>
+                                <Text style={styles.couponsBannerTitle}>My Coupons</Text>
+                                <Text style={styles.couponsBannerSubtitle}>
+                                    {isPromoActive ? 'Tap to view your $100+ welcome pack' : 'Tap to view your coupons'}
+                                </Text>
+                            </View>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
+                    </TouchableOpacity>
+
                     {/* Referral & Rewards Card */}
                     <View style={styles.referralCard}>
                         <View style={styles.referralHeader}>
@@ -204,7 +274,9 @@ export default function AccountScreen() {
                             <Text style={styles.referralTitle}>Invite Friends & Earn Rewards</Text>
                         </View>
                         <Text style={styles.referralDesc}>
-                            Share POPU with friends! They'll get a $100 welcome reward, and you'll receive exclusive credits when they make their first purchase.
+                            {isPromoActive
+                                ? "Share POPU with friends! They'll get a $125 Welcome Pack (5 x $20 welcome coupons + $25 referral bonus), and you'll receive a $25 reward when they make their first purchase."
+                                : "Share POPU with friends! They'll get a $25 referral bonus, and you'll receive a $25 reward when they make their first purchase."}
                         </Text>
                         <View style={styles.referralActions}>
                             <TouchableOpacity style={styles.referralCodeBox} onPress={handleCopyReferral} activeOpacity={0.7}>
@@ -295,7 +367,7 @@ export default function AccountScreen() {
 
                 <View style={styles.versionInfo}>
                     <Text style={styles.versionText}>
-                        Version {Constants.expoConfig?.version || '1.1.4'} (Build {Constants.expoConfig?.ios?.buildNumber || '10'})
+                        Version {Constants.expoConfig?.version || '1.1.5'} (Build {Constants.expoConfig?.ios?.buildNumber || '11'})
                     </Text>
                 </View>
             </ScrollView>
@@ -323,22 +395,58 @@ export default function AccountScreen() {
                         </View>
                         
                         <Text style={styles.modalTitle}>WELCOME TO POPU!</Text>
-                        <Text style={styles.modalSubtitle}>Exclusive $100 Welcome Gift</Text>
-                        
-                        <Text style={styles.modalDescription}>
-                            Here is a $100 discount coupon code for your first purchase. Copy it now and use it at checkout!
+                        <Text style={styles.modalSubtitle}>
+                            {isPromoActive
+                                ? (referredByCode ? 'Exclusive $125 Welcome Pack' : 'Exclusive $100 Welcome Pack')
+                                : 'Exclusive $25 Referral Bonus'}
                         </Text>
                         
-                        <TouchableOpacity style={styles.modalCodeBox} onPress={handleCopyPromo} activeOpacity={0.8}>
-                            <Text style={styles.modalCodeLabel}>TAP TO COPY PROMO CODE</Text>
-                            <View style={styles.modalCodeRow}>
-                                <Text style={styles.modalCodeText}>POPUWELCOME100</Text>
-                                <MaterialCommunityIcons name="content-copy" size={16} color="#A390E4" />
-                            </View>
-                        </TouchableOpacity>
+                        <Text style={styles.modalDescription}>
+                            {isPromoActive
+                                ? (referredByCode 
+                                    ? 'Congratulations! You have received a $125 Welcome Pack containing 5 welcome coupons (worth $100) and 1 referral bonus coupon (worth $25). Redeem them on separate orders.' 
+                                    : 'Congratulations! You have received a $100 Welcome Pack containing 5 welcome coupons. Redeem them on separate orders.')
+                                : 'Congratulations! You have received a $25 Referral Bonus coupon. Redeem it on your order.'}
+                        </Text>
                         
-                        <TouchableOpacity style={styles.modalPrimaryBtn} onPress={handleCopyPromo}>
-                            <Text style={styles.modalPrimaryBtnText}>COPY & START SHOPPING</Text>
+                        <View style={styles.couponPackPreview}>
+                            {isPromoActive && (
+                                <LinearGradient
+                                    colors={['#F5F3FF', '#FFF0F5']}
+                                    style={styles.packPreviewGradient}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    <MaterialCommunityIcons name="ticket-percent" size={28} color="#A390E4" />
+                                    <View style={styles.packPreviewTextContainer}>
+                                        <Text style={styles.packPreviewTitle}>$100 Welcome Coupon Pack</Text>
+                                        <Text style={styles.packPreviewSubtitle}>5 x $20 coupons added to your wallet</Text>
+                                    </View>
+                                </LinearGradient>
+                            )}
+                            {referredByCode && (
+                                <LinearGradient
+                                    colors={['#FFF0F5', '#FFF9E6']}
+                                    style={[styles.packPreviewGradient, isPromoActive && { marginTop: 10 }]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    <MaterialCommunityIcons name="gift" size={28} color="#E8A0BF" />
+                                    <View style={styles.packPreviewTextContainer}>
+                                        <Text style={styles.packPreviewTitle}>$25 Referral Coupon Bonus</Text>
+                                        <Text style={styles.packPreviewSubtitle}>Additional bonus coupon in your wallet</Text>
+                                    </View>
+                                </LinearGradient>
+                            )}
+                        </View>
+                        
+                        <TouchableOpacity 
+                            style={styles.modalPrimaryBtn} 
+                            onPress={handleGoToCoupons}
+                        >
+                            <Text style={styles.modalPrimaryBtnText}>
+                                VIEW MY COUPONS
+                            </Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity style={styles.modalSecondaryBtn} onPress={handleDismissWelcome}>
@@ -408,19 +516,27 @@ const styles = StyleSheet.create({
     },
     secondaryBtn: {
         paddingHorizontal: 20,
-        paddingVertical: 18,
+        paddingVertical: 14,
         borderRadius: 12, // Square rounded
         borderWidth: 1,
         borderColor: '#000',
         width: '100%',
         alignItems: 'center',
         backgroundColor: '#fff',
+        gap: 2,
     },
     secondaryBtnText: {
         color: '#000',
         fontWeight: 'bold',
         fontSize: 16,
         letterSpacing: 0.5,
+    },
+    secondaryBtnSubText: {
+        color: '#A390E4',
+        fontSize: 10,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+        textAlign: 'center',
     },
 
     // Logged In Styles
@@ -738,34 +854,31 @@ const styles = StyleSheet.create({
         marginBottom: 24,
         paddingHorizontal: 10,
     },
-    modalCodeBox: {
-        backgroundColor: '#F9F9F9',
-        borderWidth: 1,
-        borderColor: '#EFEFEF',
-        borderRadius: 12,
+    couponPackPreview: {
         width: '100%',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
         marginBottom: 24,
-        alignItems: 'center',
     },
-    modalCodeLabel: {
-        fontSize: 9,
-        color: '#999',
-        fontWeight: 'bold',
-        marginBottom: 4,
-        letterSpacing: 0.5,
-    },
-    modalCodeRow: {
+    packPreviewGradient: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#EFEFEF',
+        gap: 12,
     },
-    modalCodeText: {
-        fontSize: 18,
+    packPreviewTextContainer: {
+        flex: 1,
+    },
+    packPreviewTitle: {
+        fontSize: 14,
         fontWeight: 'bold',
         color: '#000',
-        letterSpacing: 1,
+        marginBottom: 2,
+    },
+    packPreviewSubtitle: {
+        fontSize: 11,
+        color: '#666',
     },
     modalPrimaryBtn: {
         backgroundColor: '#000',
@@ -796,5 +909,82 @@ const styles = StyleSheet.create({
         color: '#999',
         fontSize: 13,
         fontWeight: '500',
+    },
+    couponsBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#fff',
+        padding: 20,
+        borderRadius: 16,
+        marginBottom: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    couponsBannerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15,
+    },
+    couponsIconCircle: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#F5F3FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    couponsTextContainer: {
+        justifyContent: 'center',
+    },
+    couponsBannerTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#000',
+        marginBottom: 2,
+    },
+    couponsBannerSubtitle: {
+        fontSize: 12,
+        color: '#666',
+    },
+    promoBadgeContainer: {
+        marginTop: 25,
+        position: 'relative',
+        alignSelf: 'center',
+    },
+    promoGlow: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(163, 144, 228, 0.22)',
+        borderRadius: 20,
+    },
+    promoBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(163, 144, 228, 0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(163, 144, 228, 0.15)',
+        borderRadius: 20,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        shadowColor: '#A390E4',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 2,
+    },
+    promoText: {
+        color: '#A390E4',
+        fontSize: 12,
+        fontWeight: '600',
+        letterSpacing: 0.5,
     },
 });

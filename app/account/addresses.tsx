@@ -195,9 +195,13 @@ export default function AddressesScreen() {
                 renderItem={renderAddress}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="#000"
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#000"
+                    />
+                }
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
                         <IconSymbol name="location" size={48} color="#ccc" />

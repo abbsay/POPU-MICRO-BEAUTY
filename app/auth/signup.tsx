@@ -1,13 +1,14 @@
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Stack, router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { customerAccessTokenCreate, customerCreate } from '../../api/shopify';
 import { Colors } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
+import { createDynamicCouponsForUser } from '../../api/adminShopify';
 
 export default function SignupScreen() {
     const [email, setEmail] = useState('');
@@ -17,6 +18,8 @@ export default function SignupScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const login = useAuthStore((state) => state.login);
+
+    const isPromoActive = new Date() < new Date('2026-07-16T00:00:00Z');
 
     const handleSignup = async () => {
         if (!email || !password || !confirmPassword) {
@@ -38,6 +41,10 @@ export default function SignupScreen() {
                 return;
             }
 
+            // Create dynamic coupons on Shopify backend for the new user
+            const hasReferral = !!referralCode.trim();
+            await createDynamicCouponsForUser(email, hasReferral);
+
             // 2. Login immediately
             const tokenRes = await customerAccessTokenCreate(email, password);
             if (tokenRes.customerAccessToken) {
@@ -47,6 +54,8 @@ export default function SignupScreen() {
                     if (currentCartId) {
                         await useCartStore.getState().applyReferralCode(referralCode.trim());
                     }
+                } else {
+                    await AsyncStorage.removeItem('referred_by_code');
                 }
                 await login(tokenRes.customerAccessToken.accessToken, tokenRes.customerAccessToken.expiresAt);
                 await useCartStore.getState().associateCustomer(tokenRes.customerAccessToken.accessToken);
@@ -64,63 +73,79 @@ export default function SignupScreen() {
         <SafeAreaView style={styles.container}>
             <Stack.Screen options={{ title: 'Sign Up', headerBackTitle: 'Login', headerTintColor: '#000' }} />
 
-            <View style={styles.content}>
-                <Text style={styles.header}>Create Account</Text>
-                <Text style={styles.subHeader}>Join POPU MICRO BEAUTY</Text>
+            <KeyboardAvoidingView 
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+            >
+                <ScrollView 
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <Text style={styles.header}>Create Account</Text>
+                    <Text style={styles.subHeader}>Join POPU MICRO BEAUTY</Text>
 
-                <View style={styles.form}>
-                    <Text style={styles.label}>Email</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Enter your email"
-                        autoCapitalize="none"
-                        value={email}
-                        onChangeText={setEmail}
-                    />
-
-                    <Text style={styles.label}>Password</Text>
-                    <View style={styles.passwordContainer}>
+                    <View style={styles.form}>
+                        <Text style={styles.label}>Email</Text>
                         <TextInput
-                            style={styles.passwordInput}
-                            placeholder="Create a password"
-                            secureTextEntry={!showPassword}
-                            value={password}
-                            onChangeText={setPassword}
+                            style={styles.input}
+                            placeholder="Enter your email"
+                            autoCapitalize="none"
+                            value={email}
+                            onChangeText={setEmail}
                         />
-                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                            <IconSymbol name={showPassword ? 'eye.slash' : 'eye'} size={20} color="#666" />
+
+                        <Text style={styles.label}>Password</Text>
+                        <View style={styles.passwordContainer}>
+                            <TextInput
+                                style={styles.passwordInput}
+                                placeholder="Create a password"
+                                secureTextEntry={!showPassword}
+                                value={password}
+                                onChangeText={setPassword}
+                            />
+                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                                <IconSymbol name={showPassword ? 'eye.slash' : 'eye'} size={20} color="#666" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.label}>Confirm Password</Text>
+                        <View style={styles.passwordContainer}>
+                            <TextInput
+                                style={styles.passwordInput}
+                                placeholder="Confirm your password"
+                                secureTextEntry={!showPassword}
+                                value={confirmPassword}
+                                onChangeText={setConfirmPassword}
+                            />
+                        </View>
+
+                        <View style={styles.referralGroup}>
+                            <Text style={styles.label}>Referral Code (Optional)</Text>
+                            <Text style={styles.hintText}>
+                                {isPromoActive 
+                                    ? 'Enter a referral code to get an extra $25 coupon (on top of your $100 welcome pack). Your referrer will also receive a $25 reward!'
+                                    : 'Enter a referral code to get a $25 coupon. Your referrer will also receive a $25 reward!'}
+                            </Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter referral code"
+                                autoCapitalize="none"
+                                value={referralCode}
+                                onChangeText={setReferralCode}
+                            />
+                        </View>
+
+                        <TouchableOpacity
+                            style={[styles.button, loading && styles.buttonDisabled]}
+                            onPress={handleSignup}
+                            disabled={loading}
+                        >
+                            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>CREATE ACCOUNT</Text>}
                         </TouchableOpacity>
                     </View>
-
-                    <Text style={styles.label}>Confirm Password</Text>
-                    <View style={styles.passwordContainer}>
-                        <TextInput
-                            style={styles.passwordInput}
-                            placeholder="Confirm your password"
-                            secureTextEntry={!showPassword}
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                        />
-                    </View>
-
-                    <Text style={styles.label}>Referral Code (Optional)</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Enter referral code"
-                        autoCapitalize="none"
-                        value={referralCode}
-                        onChangeText={setReferralCode}
-                    />
-
-                    <TouchableOpacity
-                        style={[styles.button, loading && styles.buttonDisabled]}
-                        onPress={handleSignup}
-                        disabled={loading}
-                    >
-                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>CREATE ACCOUNT</Text>}
-                    </TouchableOpacity>
-                </View>
-            </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
@@ -130,9 +155,10 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff',
     },
-    content: {
+    scrollContent: {
         padding: 20,
-        paddingTop: 40,
+        paddingTop: 20,
+        paddingBottom: 60,
     },
     header: {
         fontSize: 32,
@@ -147,6 +173,15 @@ const styles = StyleSheet.create({
     },
     form: {
         gap: 20,
+    },
+    referralGroup: {
+        gap: 4,
+    },
+    hintText: {
+        fontSize: 12,
+        color: '#666',
+        lineHeight: 16,
+        marginTop: -2,
     },
     label: {
         fontSize: 14,

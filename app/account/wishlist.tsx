@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import * as Haptics from 'expo-haptics';
 import { Link, Stack } from 'expo-router';
@@ -45,16 +46,20 @@ export default function WishlistScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <Stack.Screen options={{ title: 'Wishlist', headerBackTitleVisible: false }} />
+            <Stack.Screen options={{ title: 'Wishlist', headerBackTitle: '' }} />
 
             <FlatList
                 data={items}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="#000"
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#000"
+                    />
+                }
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
                         <IconSymbol name="heart" size={60} color="#ddd" />

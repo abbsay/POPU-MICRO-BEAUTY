@@ -61,9 +61,13 @@ export default function OrdersScreen() {
                 renderItem={renderOrder}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="#000"
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#000"
+                    />
+                }
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyText}>You haven&apos;t placed any orders yet.</Text>

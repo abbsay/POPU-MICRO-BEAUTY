@@ -3,6 +3,7 @@ import { Stack, router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { customerAccessTokenCreate, customerRecover } from '../../api/shopify';
 import { Colors } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
@@ -49,6 +50,7 @@ export default function LoginScreen() {
             if (response.customerUserErrors && response.customerUserErrors.length > 0) {
                 Alert.alert('Login Failed', response.customerUserErrors[0].message);
             } else if (response.customerAccessToken) {
+                await AsyncStorage.removeItem('referred_by_code');
                 await login(response.customerAccessToken.accessToken, response.customerAccessToken.expiresAt);
                 await useCartStore.getState().associateCustomer(response.customerAccessToken.accessToken);
                 router.dismiss(); // Go back to account page
