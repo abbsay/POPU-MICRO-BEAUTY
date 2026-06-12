@@ -8,6 +8,7 @@ import { customerAccessTokenCreate, customerRecover } from '../../api/shopify';
 import { Colors } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
+import { createDynamicCouponsForUser } from '../../api/adminShopify';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
@@ -53,6 +54,10 @@ export default function LoginScreen() {
                 await AsyncStorage.removeItem('referred_by_code');
                 await login(response.customerAccessToken.accessToken, response.customerAccessToken.expiresAt);
                 await useCartStore.getState().associateCustomer(response.customerAccessToken.accessToken);
+                // Auto-create coupons on login (safe/idempotent)
+                createDynamicCouponsForUser(email, false).catch((err) => {
+                    console.error('Failed to create coupons on login:', err);
+                });
                 router.dismiss(); // Go back to account page
             }
         } catch (error) {

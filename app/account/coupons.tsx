@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../store/authStore';
 import { useToast } from '../../components/ui/Toast';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { getSanitizedPrefix } from '../../api/adminShopify';
+import { getSanitizedPrefix, createDynamicCouponsForUser } from '../../api/adminShopify';
 
 interface CouponItem {
     id: string;
@@ -95,8 +95,15 @@ export default function CouponsScreen() {
     }, [customer]);
 
     useEffect(() => {
+        if (customer && customer.email) {
+            AsyncStorage.getItem('referred_by_code').then((refCode) => {
+                createDynamicCouponsForUser(customer.email, !!refCode).catch((err) => {
+                    console.error('Failed to auto-create coupons for user:', err);
+                });
+            });
+        }
         loadCouponsAndStatus();
-    }, [loadCouponsAndStatus]);
+    }, [customer, loadCouponsAndStatus]);
 
     const onRefresh = async () => {
         setRefreshing(true);
