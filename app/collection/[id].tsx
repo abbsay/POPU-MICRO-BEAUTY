@@ -4,7 +4,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getCollectionProducts } from '../../api/shopify';
+import { getCollectionProducts, getCollectionByHandle } from '../../api/shopify';
 import { Colors } from '../../constants/theme';
 
 export default function CollectionScreen() {
@@ -27,7 +27,12 @@ export default function CollectionScreen() {
         try {
             // Ensure ID is decoded if passed as URL param
             const decodedId = decodeURIComponent(collectionId);
-            const data = await getCollectionProducts(decodedId);
+            let data;
+            if (decodedId.startsWith('gid://shopify/Collection/')) {
+                data = await getCollectionProducts(decodedId);
+            } else {
+                data = await getCollectionByHandle(decodedId);
+            }
             setCollection(data);
         } catch (error) {
             console.error(error);

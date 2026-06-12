@@ -547,6 +547,40 @@ export async function getCollectionProducts(collectionId: string) {
   return response.collection;
 }
 
+export async function getCollectionByHandle(handle: string) {
+  const query = `
+    query getCollectionByHandle($handle: String!) {
+      collection(handle: $handle) {
+        id
+        title
+        products(first: 20) {
+          edges {
+            node {
+              id
+              title
+              priceRange {
+                minVariantPrice {
+                  amount
+                  currencyCode
+                }
+              }
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  const response = await shopifyFetch(query, { handle: handle });
+  return response.collection;
+}
+
 export async function customerAccessTokenCreate(email: string, password: string) {
   const query = `
     mutation customerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {

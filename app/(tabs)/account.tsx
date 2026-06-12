@@ -86,7 +86,7 @@ export default function AccountScreen() {
         if (!customer?.email) return;
         const code = `POPU-${customer.email.split('@')[0].toUpperCase()}`;
         const message = isPromoActive
-            ? `Join POPU Micro Beauty and get a $125 Welcome Pack (5 x $20 welcome coupons + $25 bonus)! Use my referral code ${code} when you sign up. Download the app today: https://apps.apple.com/app/id6758688074`
+            ? `Invite your friends to POPU! They’ll get a $125 Welcome Pack with 5 x $20 welcome coupons and an exclusive $25 machine purchase offer. After their first purchase, you’ll unlock one additional $25 machine purchase opportunity. Use my referral code ${code} when you sign up. Download the app today: https://apps.apple.com/app/id6758688074`
             : `Join POPU Micro Beauty and get a $25 bonus coupon! Use my referral code ${code} when you sign up. Download the app today: https://apps.apple.com/app/id6758688074`;
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -275,7 +275,7 @@ export default function AccountScreen() {
                         </View>
                         <Text style={styles.referralDesc}>
                             {isPromoActive
-                                ? "Share POPU with friends! They'll get a $125 Welcome Pack (5 x $20 welcome coupons + $25 referral bonus), and you'll receive a $25 reward when they make their first purchase."
+                                ? "Invite your friends to POPU! They’ll get a $125 Welcome Pack with 5 x $20 welcome coupons and an exclusive $25 machine purchase offer. After their first purchase, you’ll unlock one additional $25 machine purchase opportunity."
                                 : "Share POPU with friends! They'll get a $25 referral bonus, and you'll receive a $25 reward when they make their first purchase."}
                         </Text>
                         <View style={styles.referralActions}>
@@ -293,6 +293,26 @@ export default function AccountScreen() {
                                 <Text style={styles.referralShareBtnText}>SHARE</Text>
                             </TouchableOpacity>
                         </View>
+                        {isPromoActive && (
+                            <TouchableOpacity 
+                                style={styles.promoOfferBtn} 
+                                onPress={() => {
+                                    router.push(`/collection/${encodeURIComponent('25-pmu-pen-machines-exclusive-popu-referral-offer')}`);
+                                }}
+                                activeOpacity={0.85}
+                            >
+                                <LinearGradient
+                                    colors={['#A390E4', '#E8A0BF']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.promoOfferGradient}
+                                >
+                                    <MaterialCommunityIcons name="lightning-bolt" size={16} color="#fff" />
+                                    <Text style={styles.promoOfferBtnText}>VIEW EXCLUSIVE MACHINE OFFER</Text>
+                                    <MaterialCommunityIcons name="arrow-right" size={16} color="#fff" />
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
 
@@ -360,14 +380,13 @@ export default function AccountScreen() {
                         />
                     </View>
                 </View>
-
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                     <Text style={styles.logoutText}>Log Out</Text>
                 </TouchableOpacity>
 
                 <View style={styles.versionInfo}>
                     <Text style={styles.versionText}>
-                        Version {Constants.expoConfig?.version || '1.1.6'} (Build {Constants.expoConfig?.ios?.buildNumber || '12'})
+                        Version {Constants.expoConfig?.version || '1.1.7'} (Build {Constants.expoConfig?.ios?.buildNumber || '13'})
                     </Text>
                 </View>
             </ScrollView>
@@ -985,6 +1004,25 @@ const styles = StyleSheet.create({
         color: '#A390E4',
         fontSize: 12,
         fontWeight: '600',
+        letterSpacing: 0.5,
+    },
+    promoOfferBtn: {
+        marginTop: 15,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    promoOfferGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        gap: 8,
+    },
+    promoOfferBtnText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
         letterSpacing: 0.5,
     },
 });

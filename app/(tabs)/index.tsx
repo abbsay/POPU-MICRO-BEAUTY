@@ -84,7 +84,7 @@ export default function HomeScreen() {
       title: 'PMU PEN MACHINES',
       tag: 'EXCLUSIVE OFFER',
       image: require('../../assets/images/discount20260715.jpg'),
-      link: 'https://www.popumicrobeauty.com/collections/25-pmu-pen-machines-exclusive-popu-referral-offer'
+      link: '25-pmu-pen-machines-exclusive-popu-referral-offer'
     });
   }
 
@@ -165,13 +165,9 @@ export default function HomeScreen() {
                   }}
                 >
                   {slides.map((slide, index) => {
-                    const handlePress = async () => {
+                    const handlePress = () => {
                       if (slide.type === 'promo') {
-                        try {
-                          await WebBrowser.openBrowserAsync(slide.link);
-                        } catch (err) {
-                          console.error("Failed to open promo link:", err);
-                        }
+                        router.push(`/collection/${encodeURIComponent(slide.link)}`);
                       } else {
                         router.push(`/product/${encodeURIComponent(slide.id)}?origin=home_hero`);
                       }
@@ -192,18 +188,20 @@ export default function HomeScreen() {
                         ) : (
                           <View style={[styles.heroImage, { backgroundColor: '#ddd' }]} />
                         )}
-                        <LinearGradient 
-                          colors={['transparent', 'rgba(0,0,0,0.8)']} 
-                          style={styles.heroOverlay}
-                        >
-                          <Text style={styles.heroTag}>{slide.tag}</Text>
-                          <Text style={styles.heroTitle} numberOfLines={2}>
-                            {slide.title}
-                          </Text>
-                          <View style={styles.shopNowBtn}>
-                            <Text style={styles.shopNowText}>SHOP NOW</Text>
-                          </View>
-                        </LinearGradient>
+                        {slide.type !== 'promo' && (
+                          <LinearGradient 
+                            colors={['transparent', 'rgba(163, 144, 228, 0.15)', 'rgba(64, 46, 122, 0.65)']} 
+                            style={styles.heroOverlay}
+                          >
+                            <Text style={styles.heroTag}>{slide.tag}</Text>
+                            <Text style={styles.heroTitle} numberOfLines={2}>
+                              {slide.title}
+                            </Text>
+                            <View style={styles.shopNowBtn}>
+                              <Text style={styles.shopNowText}>SHOP NOW</Text>
+                            </View>
+                          </LinearGradient>
+                        )}
                       </TouchableOpacity>
                     );
                   })}
