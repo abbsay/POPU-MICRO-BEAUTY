@@ -1,8 +1,9 @@
-import { Link, Stack } from 'expo-router';
+import { Link, Stack, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as WebBrowser from 'expo-web-browser';
 import { getCollections, getProducts, searchProducts, getMainPromotionProducts } from '../../api/shopify';
 
 import { ProductCard } from '@/components/ProductCard';
@@ -73,7 +74,31 @@ export default function HomeScreen() {
     loadData(false);
   };
 
+  const isPromoActive = new Date() < new Date('2026-07-16T00:00:00Z');
 
+  const slides: any[] = [];
+  if (isPromoActive) {
+    slides.push({
+      id: 'promo_july_2026',
+      type: 'promo',
+      title: 'PMU PEN MACHINES',
+      tag: 'EXCLUSIVE OFFER',
+      image: require('../../assets/images/discount20260715.jpg'),
+      link: 'https://www.popumicrobeauty.com/collections/25-pmu-pen-machines-exclusive-popu-referral-offer'
+    });
+  }
+
+  heroItems.forEach((product, index) => {
+    const isClover = index === 0;
+    slides.push({
+      id: product.id,
+      type: 'product',
+      title: isClover ? "POPU PMU CARTRIDGES" : "POPU PMU MACHINES",
+      tag: isClover ? "PRECISION & SAFETY" : "INNOVATIVE DESIGN",
+      image: product.images?.edges?.[0]?.node?.url ? { uri: product.images.edges[0].node.url } : null,
+      product: product
+    });
+  });
 
   return (
     <View style={styles.container}>
@@ -122,14 +147,14 @@ export default function HomeScreen() {
           ) : (
             <>
               {/* Hero Section */}
-              {/* Hero Section - Dual Carousel */}
+              {/* Hero Section - Dual/Triple Carousel */}
               <View style={styles.heroWrapper}>
                 <ScrollView
                   horizontal
                   pagingEnabled
                   showsHorizontalScrollIndicator={false}
                   style={styles.heroContainer}
-                  contentContainerStyle={{ width: width * (heroItems.length || 2) }}
+                  contentContainerStyle={{ width: width * (slides.length || 1) }}
                   scrollEventThrottle={16}
                   onScroll={(e) => {
                     const x = e.nativeEvent.contentOffset.x;
@@ -139,18 +164,29 @@ export default function HomeScreen() {
                     }
                   }}
                 >
-                  {heroItems.map((product, index) => {
-                  // Customize title/tag based on the product (index 0 is Clover, 1 is Diva)
-                  const isClover = index === 0;
-                  const customTitle = isClover ? "POPU PMU CARTRIDGES" : "POPU PMU MACHINES";
-                  const customTag = isClover ? "PRECISION & SAFETY" : "INNOVATIVE DESIGN";
+                  {slides.map((slide, index) => {
+                    const handlePress = async () => {
+                      if (slide.type === 'promo') {
+                        try {
+                          await WebBrowser.openBrowserAsync(slide.link);
+                        } catch (err) {
+                          console.error("Failed to open promo link:", err);
+                        }
+                      } else {
+                        router.push(`/product/${encodeURIComponent(slide.id)}?origin=home_hero`);
+                      }
+                    };
 
-                  return (
-                    <Link key={product.id + index} href={`/product/${encodeURIComponent(product.id)}?origin=home_hero`} asChild>
-                      <TouchableOpacity activeOpacity={0.9} style={styles.heroSlide}>
-                        {product.images?.edges?.[0]?.node?.url ? (
+                    return (
+                      <TouchableOpacity 
+                        key={slide.id + index} 
+                        activeOpacity={0.9} 
+                        style={styles.heroSlide}
+                        onPress={handlePress}
+                      >
+                        {slide.image ? (
                           <Image
-                            source={{ uri: product.images.edges[0].node.url }}
+                            source={slide.image}
                             style={styles.heroImage}
                           />
                         ) : (
@@ -160,21 +196,20 @@ export default function HomeScreen() {
                           colors={['transparent', 'rgba(0,0,0,0.8)']} 
                           style={styles.heroOverlay}
                         >
-                          <Text style={styles.heroTag}>{customTag}</Text>
+                          <Text style={styles.heroTag}>{slide.tag}</Text>
                           <Text style={styles.heroTitle} numberOfLines={2}>
-                            {customTitle}
+                            {slide.title}
                           </Text>
                           <View style={styles.shopNowBtn}>
                             <Text style={styles.shopNowText}>SHOP NOW</Text>
                           </View>
                         </LinearGradient>
                       </TouchableOpacity>
-                    </Link>
-                  );
-                })}
+                    );
+                  })}
                 </ScrollView>
                 <View style={styles.paginationContainer}>
-                  {heroItems.map((_, i) => (
+                  {slides.map((_, i) => (
                     <View key={i} style={[styles.paginationDot, i === heroActiveIndex ? styles.paginationDotActive : null]} />
                   ))}
                 </View>

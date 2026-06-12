@@ -69,7 +69,7 @@ export async function createDynamicCouponsForUser(email: string, hasReferral: bo
             basicCodeDiscount: {
                 title: item.title,
                 code: item.code,
-                startsAt: new Date().toISOString(),
+                startsAt: "2026-01-01T00:00:00Z",
                 endsAt: item.endsAt || null,
                 customerSelection: {
                     all: true
