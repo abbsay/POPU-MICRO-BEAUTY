@@ -81,10 +81,10 @@ export default function HomeScreen() {
     slides.push({
       id: 'promo_july_2026',
       type: 'promo',
-      title: 'PMU PEN MACHINES',
+      title: 'My Coupons',
       tag: 'EXCLUSIVE OFFER',
-      image: require('../../assets/images/discount20260715.jpg'),
-      link: '25-pmu-pen-machines-exclusive-popu-referral-offer'
+      image: require('../../assets/images/newdiscount615to715.jpg'),
+      link: '/account/coupons'
     });
   }
 
@@ -167,7 +167,11 @@ export default function HomeScreen() {
                   {slides.map((slide, index) => {
                     const handlePress = () => {
                       if (slide.type === 'promo') {
-                        router.push(`/collection/${encodeURIComponent(slide.link)}`);
+                        if (slide.link.startsWith('/')) {
+                          router.push(slide.link);
+                        } else {
+                          router.push(`/collection/${encodeURIComponent(slide.link)}`);
+                        }
                       } else {
                         router.push(`/product/${encodeURIComponent(slide.id)}?origin=home_hero`);
                       }

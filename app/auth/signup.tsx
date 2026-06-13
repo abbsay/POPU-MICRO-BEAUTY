@@ -120,21 +120,7 @@ export default function SignupScreen() {
                             />
                         </View>
 
-                        <View style={styles.referralGroup}>
-                            <Text style={styles.label}>Referral Code (Optional)</Text>
-                            <Text style={styles.hintText}>
-                                {isPromoActive 
-                                    ? 'Enter a referral code to get an extra $25 coupon (on top of your $100 welcome pack). Your referrer will also receive a $25 reward!'
-                                    : 'Enter a referral code to get a $25 coupon. Your referrer will also receive a $25 reward!'}
-                            </Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter referral code"
-                                autoCapitalize="none"
-                                value={referralCode}
-                                onChangeText={setReferralCode}
-                            />
-                        </View>
+
 
                         <TouchableOpacity
                             style={[styles.button, loading && styles.buttonDisabled]}

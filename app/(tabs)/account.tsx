@@ -244,73 +244,40 @@ export default function AccountScreen() {
                         <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
                     </TouchableOpacity>
 
-                    {/* My Coupons Banner */}
-                    <TouchableOpacity 
-                        onPress={() => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            router.push('/account/coupons');
-                        }} 
-                        style={styles.couponsBanner} 
-                        activeOpacity={0.8}
-                    >
-                        <View style={styles.couponsBannerContent}>
+                    {/* Parallel Actions Row */}
+                    <View style={styles.parallelCardsRow}>
+                        {/* My Coupons Card */}
+                        <TouchableOpacity 
+                            onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                router.push('/account/coupons');
+                            }} 
+                            style={styles.parallelCard} 
+                            activeOpacity={0.8}
+                        >
                             <View style={styles.couponsIconCircle}>
                                 <MaterialCommunityIcons name="ticket-percent-outline" size={24} color="#A390E4" />
                             </View>
-                            <View style={styles.couponsTextContainer}>
-                                <Text style={styles.couponsBannerTitle}>My Coupons</Text>
-                                <Text style={styles.couponsBannerSubtitle}>
-                                    {isPromoActive ? 'Tap to view your $100+ welcome pack' : 'Tap to view your coupons'}
-                                </Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
-                    </TouchableOpacity>
+                            <Text style={styles.cardTitle}>My Coupons</Text>
+                            <Text style={styles.cardSubtitle}>
+                                {isPromoActive ? 'View your $100 welcome pack' : 'View your coupons'}
+                            </Text>
+                        </TouchableOpacity>
 
-                    {/* Referral & Rewards Card */}
-                    <View style={styles.referralCard}>
-                        <View style={styles.referralHeader}>
-                            <MaterialCommunityIcons name="gift-outline" size={20} color="#A390E4" />
-                            <Text style={styles.referralTitle}>Invite Friends & Earn Rewards</Text>
-                        </View>
-                        <Text style={styles.referralDesc}>
-                            {isPromoActive
-                                ? "Invite your friends to POPU! They’ll get a $125 Welcome Pack with 5 x $20 welcome coupons and an exclusive $25 machine purchase offer. After their first purchase, you’ll unlock one additional $25 machine purchase opportunity."
-                                : "Share POPU with friends! They'll get a $25 referral bonus, and you'll receive a $25 reward when they make their first purchase."}
-                        </Text>
-                        <View style={styles.referralActions}>
-                            <TouchableOpacity style={styles.referralCodeBox} onPress={handleCopyReferral} activeOpacity={0.7}>
-                                <Text style={styles.referralCodeLabel}>YOUR REFERRAL CODE</Text>
-                                <View style={styles.referralCodeRow}>
-                                    <Text style={styles.referralCodeText}>
-                                        {`POPU-${customer.email.split('@')[0].toUpperCase()}`}
-                                    </Text>
-                                    <MaterialCommunityIcons name="content-copy" size={14} color="#666" />
-                                </View>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.referralShareBtn} onPress={handleShareReferral} activeOpacity={0.8}>
-                                <MaterialCommunityIcons name="share-variant" size={16} color="#fff" style={{ marginRight: 6 }} />
-                                <Text style={styles.referralShareBtnText}>SHARE</Text>
-                            </TouchableOpacity>
-                        </View>
+                        {/* Exclusive Machine Offer Card */}
                         {isPromoActive && (
                             <TouchableOpacity 
-                                style={styles.promoOfferBtn} 
                                 onPress={() => {
                                     router.push(`/collection/${encodeURIComponent('25-pmu-pen-machines-exclusive-popu-referral-offer')}`);
                                 }}
+                                style={styles.parallelCard}
                                 activeOpacity={0.85}
                             >
-                                <LinearGradient
-                                    colors={['#A390E4', '#E8A0BF']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={styles.promoOfferGradient}
-                                >
-                                    <MaterialCommunityIcons name="lightning-bolt" size={16} color="#fff" />
-                                    <Text style={styles.promoOfferBtnText}>VIEW EXCLUSIVE MACHINE OFFER</Text>
-                                    <MaterialCommunityIcons name="arrow-right" size={16} color="#fff" />
-                                </LinearGradient>
+                                <View style={[styles.couponsIconCircle, { backgroundColor: '#FFF0F5' }]}>
+                                    <MaterialCommunityIcons name="lightning-bolt" size={24} color="#E8A0BF" />
+                                </View>
+                                <Text style={styles.cardTitle}>Machine Offer</Text>
+                                <Text style={styles.cardSubtitle}>Exclusive machine discounts</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -415,48 +382,26 @@ export default function AccountScreen() {
                         
                         <Text style={styles.modalTitle}>WELCOME TO POPU!</Text>
                         <Text style={styles.modalSubtitle}>
-                            {isPromoActive
-                                ? (referredByCode ? 'Exclusive $125 Welcome Pack' : 'Exclusive $100 Welcome Pack')
-                                : 'Exclusive $25 Referral Bonus'}
+                            Exclusive $100 Welcome Pack
                         </Text>
                         
                         <Text style={styles.modalDescription}>
-                            {isPromoActive
-                                ? (referredByCode 
-                                    ? 'Congratulations! You have received a $125 Welcome Pack containing 5 welcome coupons (worth $100) and 1 referral bonus coupon (worth $25). Redeem them on separate orders.' 
-                                    : 'Congratulations! You have received a $100 Welcome Pack containing 5 welcome coupons. Redeem them on separate orders.')
-                                : 'Congratulations! You have received a $25 Referral Bonus coupon. Redeem it on your order.'}
+                            Congratulations! You have received a $100 Welcome Pack containing 5 welcome coupons. Redeem them on separate orders.
                         </Text>
                         
                         <View style={styles.couponPackPreview}>
-                            {isPromoActive && (
-                                <LinearGradient
-                                    colors={['#F5F3FF', '#FFF0F5']}
-                                    style={styles.packPreviewGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                >
-                                    <MaterialCommunityIcons name="ticket-percent" size={28} color="#A390E4" />
-                                    <View style={styles.packPreviewTextContainer}>
-                                        <Text style={styles.packPreviewTitle}>$100 Welcome Coupon Pack</Text>
-                                        <Text style={styles.packPreviewSubtitle}>5 x $20 coupons added to your wallet</Text>
-                                    </View>
-                                </LinearGradient>
-                            )}
-                            {referredByCode && (
-                                <LinearGradient
-                                    colors={['#FFF0F5', '#FFF9E6']}
-                                    style={[styles.packPreviewGradient, isPromoActive && { marginTop: 10 }]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                >
-                                    <MaterialCommunityIcons name="gift" size={28} color="#E8A0BF" />
-                                    <View style={styles.packPreviewTextContainer}>
-                                        <Text style={styles.packPreviewTitle}>$25 Referral Coupon Bonus</Text>
-                                        <Text style={styles.packPreviewSubtitle}>Additional bonus coupon in your wallet</Text>
-                                    </View>
-                                </LinearGradient>
-                            )}
+                            <LinearGradient
+                                colors={['#F5F3FF', '#FFF0F5']}
+                                style={styles.packPreviewGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <MaterialCommunityIcons name="ticket-percent" size={28} color="#A390E4" />
+                                <View style={styles.packPreviewTextContainer}>
+                                    <Text style={styles.packPreviewTitle}>$100 Welcome Coupon Pack</Text>
+                                    <Text style={styles.packPreviewSubtitle}>5 x $20 coupons added to your wallet</Text>
+                                </View>
+                            </LinearGradient>
                         </View>
                         
                         <TouchableOpacity 
@@ -1024,5 +969,36 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
         letterSpacing: 0.5,
+    },
+    parallelCardsRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 20,
+    },
+    parallelCard: {
+        flex: 1,
+        backgroundColor: '#fff',
+        padding: 16,
+        borderRadius: 16,
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    cardTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: '#000',
+        marginTop: 8,
+        marginBottom: 4,
+        textAlign: 'center',
+    },
+    cardSubtitle: {
+        fontSize: 11,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 14,
     },
 });
