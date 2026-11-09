@@ -74,17 +74,19 @@ export default function HomeScreen() {
     loadData(false);
   };
 
-  const isPromoActive = new Date() < new Date('2026-07-16T00:00:00Z');
+  const now = new Date();
+  // Black Friday 2026 campaign: active Nov 17 - Nov 30, auto-expires on Dec 1, 2026
+  const isBlackFridayActive = now >= new Date('2026-11-17T00:00:00') && now < new Date('2026-12-01T00:00:00');
 
   const slides: any[] = [];
-  if (isPromoActive) {
+  if (isBlackFridayActive) {
     slides.push({
-      id: 'promo_july_2026',
+      id: 'promo_black_friday_2026',
       type: 'promo',
-      title: 'My Coupons',
-      tag: 'EXCLUSIVE OFFER',
-      image: require('../../assets/images/newdiscount615to715.jpg'),
-      link: '/account/coupons'
+      title: 'Black Friday Deals',
+      tag: 'NOV 17-30 EXCLUSIVE',
+      image: require('../../assets/images/blackfriday2026.jpg'),
+      link: '/(tabs)/shop'
     });
   }
 
