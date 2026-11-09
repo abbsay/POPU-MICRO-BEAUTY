@@ -75,8 +75,8 @@ export default function HomeScreen() {
   };
 
   const now = new Date();
-  // Black Friday 2026 campaign: active Nov 17 - Nov 30, auto-expires on Dec 1, 2026
-  const isBlackFridayActive = now >= new Date('2026-11-17T00:00:00') && now < new Date('2026-12-01T00:00:00');
+  // Black Friday 2026 campaign: active Nov 17 - Nov 30, auto-expires on Dec 1, 2026 (__DEV__ allows local preview)
+  const isBlackFridayActive = __DEV__ || (now >= new Date('2026-11-17T00:00:00') && now < new Date('2026-12-01T00:00:00'));
 
   const slides: any[] = [];
   if (isBlackFridayActive) {
