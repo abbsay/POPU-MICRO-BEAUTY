@@ -353,7 +353,7 @@ export default function AccountScreen() {
 
                 <View style={styles.versionInfo}>
                     <Text style={styles.versionText}>
-                        Version {Constants.expoConfig?.version || '1.1.9'} (Build {Constants.expoConfig?.ios?.buildNumber || '15'})
+                        Version {Constants.expoConfig?.version || '1.2.0'} (Build {Constants.expoConfig?.ios?.buildNumber || '16'})
                     </Text>
                 </View>
             </ScrollView>
